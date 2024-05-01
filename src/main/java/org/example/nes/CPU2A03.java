@@ -1,8 +1,5 @@
 package org.example.nes;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class CPU2A03 {
     private static final byte IRQ_ADDR = (byte) 0xfffe;
     private static final byte RST_ADDR = (byte) 0xfffc;
@@ -36,7 +33,10 @@ public class CPU2A03 {
     private final MemoryMap memoryMap;
 
     private OpCode currentOp = OpCode.CPY_IMM;
-    private byte cycleInOp = currentOp.cycles;
+    private int cycleInOp = currentOp.cycles;
+
+    private byte inCycleVar0;
+    private byte inCycleVar1;
 
     CPU2A03(MemoryMap memoryMap) {
         this(
@@ -68,6 +68,8 @@ public class CPU2A03 {
         cycleInOp++;
         switch (currentOp) {
             case OpCode.CPY_IMM -> handleCPY_IMM();
+            case OpCode.CPY_ZPG -> handleCPY_ZPG();
+            case OpCode.CPY_ABS -> handleCPY_ABS();
         }
     }
 
@@ -78,13 +80,33 @@ public class CPU2A03 {
     }
 
     private void handleCPY_IMM() {
-        final byte operand = memoryMap.get((short) (regPC + 1));
+        handleCPY_finalCycle((short) (regPC + 1), OpCode.CPY_IMM);
+    }
+
+    private void handleCPY_ZPG() {
+        if (cycleInOp == 2) {
+            inCycleVar0 = memoryMap.get((short) (regPC + 1));
+        } else {
+            handleCPY_finalCycle((short) Byte.toUnsignedInt(inCycleVar0), OpCode.CPY_ZPG);
+        }
+    }
+
+    private void handleCPY_ABS() {
+        switch (cycleInOp) {
+            case 2 -> inCycleVar0 = memoryMap.get((short) (regPC + 1));
+            case 3 -> inCycleVar1 = memoryMap.get((short) (regPC + 2));
+            default -> handleCPY_finalCycle((short) ((inCycleVar0 & 0xff) | (inCycleVar1 << 8)), OpCode.CPY_ABS);
+        }
+    }
+
+    private void handleCPY_finalCycle(short operandAddress, OpCode opCode) {
+        final byte operand = memoryMap.get(operandAddress);
         final int subtr = Byte.compareUnsigned(regY, operand);
         final byte flags =  (byte) (((subtr >>> 7) << BIT_NEGATIVE)
                 | (subtr == 0 ? BITMASK_ZERO : 0)
                 | (subtr >= 0 ? BITMASK_CARRY : 0));
         applyCMPFlags(flags);
-        regPC += 2;
+        incrementPC(opCode);
     }
 
     private void applyCMPFlags(byte flags) {
@@ -93,6 +115,10 @@ public class CPU2A03 {
 
     private void applyFlags(byte bitmask, byte flags) {
         regP = (byte) ((regP & ~bitmask) | flags);
+    }
+
+    private void incrementPC(OpCode opCode) {
+        regPC += opCode.size;
     }
 
     public short getRegPC() {
