@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,7 +22,7 @@ public class CPU2A03Test {
     @MethodSource
     void test(TestCase testCase) {
         final CPU2A03 cpu = new CPU2A03(
-                new RecordingMemoryMap(testCase.initialState.ram),
+                new RecordingMemoryMap(testCase.initialState.ramAsByteArray()),
                 testCase.initialState.pc,
                 testCase.initialState.sp,
                 testCase.initialState.a,
@@ -38,7 +39,7 @@ public class CPU2A03Test {
         assertEquals(testCase.finalState.x, cpu.getRegX());
         assertEquals(testCase.finalState.y, cpu.getRegY());
         assertEquals(testCase.finalState.p, cpu.getRegP());
-        assertArrayEquals(testCase.finalState.ram, cpu.getMemoryMap().asByteArray());
+        assertArrayEquals(testCase.finalState.ramAsByteArray(), cpu.getMemoryMap().asByteArray());
         assertEquals(testCase.cycles, ((RecordingMemoryMap) cpu.getMemoryMap()).getLog());
     }
 
@@ -92,7 +93,15 @@ public class CPU2A03Test {
             private byte p;
 
             @JsonDeserialize(using = RamDeserializer.class)
-            private byte[] ram;
+            private Map<Integer, Byte> ram;
+
+            private byte[] ramAsByteArray() {
+                byte[] ramBytes = new byte[0x10000];
+                for (var entry : ram.entrySet()) {
+                    ramBytes[entry.getKey()] = entry.getValue();
+                }
+                return ramBytes;
+            }
         }
 
         @Override
