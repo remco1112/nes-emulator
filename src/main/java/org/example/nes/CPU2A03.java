@@ -67,9 +67,12 @@ public class CPU2A03 {
         }
         cycleInOp++;
         switch (currentOp) {
-            case OpCode.CPY_IMM -> handleCPY_IMM();
-            case OpCode.CPY_ZPG -> handleCPY_ZPG();
-            case OpCode.CPY_ABS -> handleCPY_ABS();
+            case OpCode.CPY_IMM -> handleCompare_IMM(regY);
+            case OpCode.CPY_ZPG -> handleCompare_ZPG(regY);
+            case OpCode.CPY_ABS -> handleCompare_ABS(regY);
+            case OpCode.CPX_IMM -> handleCompare_IMM(regX);
+            case OpCode.CPX_ZPG -> handleCompare_ZPG(regX);
+            case OpCode.CPX_ABS -> handleCompare_ABS(regX);
         }
     }
 
@@ -79,37 +82,37 @@ public class CPU2A03 {
         } while (cycleInOp != currentOp.cycles);
     }
 
-    private void handleCPY_IMM() {
-        handleCPY_finalCycle((short) (regPC + 1), OpCode.CPY_IMM);
+    private void handleCompare_IMM(byte reg) {
+        handleCompareFinalCycle(reg, (short) (regPC + 1));
     }
 
-    private void handleCPY_ZPG() {
+    private void handleCompare_ZPG(byte reg) {
         if (cycleInOp == 2) {
             inCycleVar0 = memoryMap.get((short) (regPC + 1));
         } else {
-            handleCPY_finalCycle((short) Byte.toUnsignedInt(inCycleVar0), OpCode.CPY_ZPG);
+            handleCompareFinalCycle(reg, (short) Byte.toUnsignedInt(inCycleVar0));
         }
     }
 
-    private void handleCPY_ABS() {
+    private void handleCompare_ABS(byte reg) {
         switch (cycleInOp) {
             case 2 -> inCycleVar0 = memoryMap.get((short) (regPC + 1));
             case 3 -> inCycleVar1 = memoryMap.get((short) (regPC + 2));
-            default -> handleCPY_finalCycle((short) ((inCycleVar0 & 0xff) | (inCycleVar1 << 8)), OpCode.CPY_ABS);
+            default -> handleCompareFinalCycle(reg, (short) ((inCycleVar0 & 0xff) | (inCycleVar1 << 8)));
         }
     }
 
-    private void handleCPY_finalCycle(short operandAddress, OpCode opCode) {
+    private void handleCompareFinalCycle(byte reg, short operandAddress) {
         final byte operand = memoryMap.get(operandAddress);
-        final int subtr = Byte.compareUnsigned(regY, operand);
+        final int subtr = Byte.compareUnsigned(reg, operand);
         final byte flags =  (byte) (((subtr >>> 7) << BIT_NEGATIVE)
                 | (subtr == 0 ? BITMASK_ZERO : 0)
                 | (subtr >= 0 ? BITMASK_CARRY : 0));
-        applyCMPFlags(flags);
-        incrementPC(opCode);
+        applyCompareFlags(flags);
+        incrementPC();
     }
 
-    private void applyCMPFlags(byte flags) {
+    private void applyCompareFlags(byte flags) {
         applyFlags(BITMASK_CMP, flags);
     }
 
@@ -117,8 +120,8 @@ public class CPU2A03 {
         regP = (byte) ((regP & ~bitmask) | flags);
     }
 
-    private void incrementPC(OpCode opCode) {
-        regPC += opCode.size;
+    private void incrementPC() {
+        regPC += currentOp.size;
     }
 
     public short getRegPC() {
