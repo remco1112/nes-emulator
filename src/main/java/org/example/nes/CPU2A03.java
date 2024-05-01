@@ -73,6 +73,9 @@ public class CPU2A03 {
             case OpCode.CPX_IMM -> handleCompare_IMM(regX);
             case OpCode.CPX_ZPG -> handleCompare_ZPG(regX);
             case OpCode.CPX_ABS -> handleCompare_ABS(regX);
+            case OpCode.CMP_IMM -> handleCompare_IMM(regA);
+            case OpCode.CMP_ZPG -> handleCompare_ZPG(regA);
+            case OpCode.CMP_ABS -> handleCompare_ABS(regA);
         }
     }
 
