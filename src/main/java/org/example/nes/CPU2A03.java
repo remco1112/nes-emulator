@@ -104,9 +104,9 @@ public class CPU2A03 {
 
     private void handleCMP_ZPX() {
         if (cycleInOp == 2) {
-            memoryMap.get((short) ((Byte.toUnsignedInt(op0))));
+            memoryMap.get((short) toUint(op0));
         } else {
-            handleCompareFinalCycleAbsolute(regA, (short) ((Byte.toUnsignedInt(op0) + Byte.toUnsignedInt(regX)) % 256));
+            handleCompareFinalCycleAbsolute(regA, (short) ((toUint(op0) + toUint(regX)) % 0x100));
         }
     }
 
