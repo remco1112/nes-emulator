@@ -106,7 +106,7 @@ public class CPU2A03 {
         if (cycleInOp == 2) {
             memoryMap.get((short) toUint(op0));
         } else {
-            handleCompareFinalCycleAbsolute(regA, (short) ((toUint(op0) + toUint(regX)) % 0x100));
+            handleCompareFinalCycleAbsolute(regA, getZeroPageAddress(regX));
         }
     }
 
@@ -114,24 +114,53 @@ public class CPU2A03 {
         switch (cycleInOp) {
             case 2 -> fetchOperand1();
             case 3 -> {
-                final int op0RegX = toUint(op0) + toUint(regX);
-                final short addr = (short) ((op0RegX % 0x100) | (op1 << 8));
-                if (op0RegX <= 0xff) {
+                final short addr = getAddressFromOperandsAndOffsetWithCarry(regX);
+                if (addressInPage(addr)) {
                     cycleInOp++;
                     handleCompareFinalCycleAbsolute(regA, addr);
                 } else {
-                    memoryMap.get(addr);
+                    memoryMap.get(subtractPage(addr));
                 }
             }
-            case 4 -> handleCompareFinalCycleAbsolute(regA, (short) (((toUint(op0) + toUint(regX)) % 0x100) | ((op1 + 1) << 8)));
+            case 4 -> handleCompareFinalCycleAbsolute(regA, getAddressFromOperandsAndOffsetWithCarry(regX));
         }
+    }
+
+    private short subtractPage(short address) {
+        return (short) (toUint(address) - 0x100);
+    }
+
+    private short getAddressFromOperands() {
+        return getAddressFromOperandsAndOffsetWithoutCarry((byte) 0);
+    }
+
+    private boolean addressInPage(short address) {
+        return ((byte) (toUint(address) >>> 8)) == op1;
+    }
+
+    private short getAddressFromOperandsAndOffsetWithCarry(byte offset) {
+        final int op0WithOffset = toUint(op0) + toUint(offset);
+        return (short) (op0WithOffset + (toUint(op1) << 8));
+    }
+
+    private short getAddressFromOperandsAndOffsetWithoutCarry(byte offset) {
+        return getAddressFromOperandsAndOffsetWithoutCarry(offset, op1);
+    }
+
+    private short getZeroPageAddress(byte offset) {
+        return getAddressFromOperandsAndOffsetWithoutCarry(offset, (byte) 0);
+    }
+
+    private short getAddressFromOperandsAndOffsetWithoutCarry(byte offset, byte operand1) {
+        final int op0WithOffset = toUint(op0) + toUint(offset);
+        return (short) ((op0WithOffset % 0x100) | (toUint(operand1) << 8));
     }
 
     private void handleCompare_ABS(byte reg) {
         if (cycleInOp == 2) {
             fetchOperand1();
         } else {
-            handleCompareFinalCycleAbsolute(reg, (short) (toUint(op0) | (op1 << 8)));
+            handleCompareFinalCycleAbsolute(reg, getAddressFromOperands());
         }
     }
 
@@ -145,6 +174,10 @@ public class CPU2A03 {
 
     private int toUint(byte byteValue) {
         return Byte.toUnsignedInt(byteValue);
+    }
+
+    private int toUint(short shortValue) {
+        return Short.toUnsignedInt(shortValue);
     }
     
     private void handleCompareFinalCycleAbsolute(byte reg, short operandAddress) {
