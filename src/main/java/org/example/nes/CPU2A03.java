@@ -33,10 +33,10 @@ public class CPU2A03 {
     private final MemoryMap memoryMap;
 
     private OpCode currentOp = OpCode.CPY_IMM;
-    private int cycleInOp = currentOp.cycles;
+    private int cycleInOp = currentOp.cycles - 1;
 
-    private byte inCycleVar0;
-    private byte inCycleVar1;
+    private byte op0;
+    private byte op1;
 
     CPU2A03(MemoryMap memoryMap) {
         this(
@@ -60,8 +60,8 @@ public class CPU2A03 {
     }
 
     public void tick() {
-        if (cycleInOp == currentOp.cycles) {
-            cycleInOp = 1;
+        if (cycleInOp == currentOp.cycles - 1) {
+            cycleInOp = 0;
             currentOp = OpCode.fromOpCode(memoryMap.get(regPC));
             return;
         }
@@ -83,7 +83,7 @@ public class CPU2A03 {
     public void tickUntilNextOp() {
         do {
             tick();
-        } while (cycleInOp != currentOp.cycles);
+        } while (cycleInOp < currentOp.cycles - 1);
     }
 
     private void handleCompare_IMM(byte reg) {
@@ -91,35 +91,35 @@ public class CPU2A03 {
     }
 
     private void handleCompare_ZPG(byte reg) {
-        if (cycleInOp == 2) {
+        if (cycleInOp == 1) {
             fetchOp1();
         } else {
-            handleCompareFinalCycle(reg, (short) Byte.toUnsignedInt(inCycleVar0));
+            handleCompareFinalCycle(reg, (short) Byte.toUnsignedInt(op0));
         }
     }
 
     private void handleCMP_ZPX() {
         switch (cycleInOp) {
-            case 2 -> fetchOp1();
-            case 3 -> memoryMap.get((short) ((Byte.toUnsignedInt(inCycleVar0))));
-            default -> handleCompareFinalCycle(regA, (short) ((Byte.toUnsignedInt(inCycleVar0) + Byte.toUnsignedInt(regX)) % 256));
+            case 1 -> fetchOp1();
+            case 2 -> memoryMap.get((short) ((Byte.toUnsignedInt(op0))));
+            default -> handleCompareFinalCycle(regA, (short) ((Byte.toUnsignedInt(op0) + Byte.toUnsignedInt(regX)) % 256));
         }
     }
 
     private void handleCompare_ABS(byte reg) {
         switch (cycleInOp) {
-            case 2 -> fetchOp1();
-            case 3 -> fetchOp2();
-            default -> handleCompareFinalCycle(reg, (short) ((inCycleVar0 & 0xff) | (inCycleVar1 << 8)));
+            case 1 -> fetchOp1();
+            case 2 -> fetchOp2();
+            default -> handleCompareFinalCycle(reg, (short) ((op0 & 0xff) | (op1 << 8)));
         }
     }
 
     private void fetchOp1() {
-        inCycleVar0 = memoryMap.get((short) (regPC + 1));
+        op0 = memoryMap.get((short) (regPC + 1));
     }
 
     private void fetchOp2() {
-        inCycleVar1 = memoryMap.get((short) (regPC + 2));
+        op1 = memoryMap.get((short) (regPC + 2));
     }
 
     private void handleCompareFinalCycle(byte reg, short operandAddress) {
