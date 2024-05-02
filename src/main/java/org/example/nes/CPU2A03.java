@@ -77,6 +77,7 @@ public class CPU2A03 {
             case OpCode.CMP_ZPG -> handleCompare_ZPG(regA);
             case OpCode.CMP_ABS -> handleCompare_ABS(regA);
             case OpCode.CMP_ZPX -> handleCMP_ZPX();
+            case OpCode.CMP_ABX -> handleCMP_ABX();
         }
     }
 
@@ -103,6 +104,24 @@ public class CPU2A03 {
             case 1 -> fetchOp1();
             case 2 -> memoryMap.get((short) ((Byte.toUnsignedInt(op0))));
             default -> handleCompareFinalCycle(regA, (short) ((Byte.toUnsignedInt(op0) + Byte.toUnsignedInt(regX)) % 256));
+        }
+    }
+
+    private void handleCMP_ABX() {
+        switch (cycleInOp) {
+            case 1 -> fetchOp1();
+            case 2 -> fetchOp2();
+            case 3 -> {
+                final int op0RegX = (op0 & 0xff) + (regX & 0xff);
+                final short addr = (short) ((op0RegX % 0x100) | (op1 << 8));
+                if (op0RegX <= 0xff) {
+                    cycleInOp++;
+                    handleCompareFinalCycle(regA, addr);
+                } else {
+                    memoryMap.get(addr);
+                }
+            }
+            case 4 -> handleCompareFinalCycle(regA, (short) ((((op0 & 0xff) + (regX & 0xff)) % 0x100) | ((op1 + 1) << 8)));
         }
     }
 
