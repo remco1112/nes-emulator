@@ -61,26 +61,31 @@ public class CPU2A03 {
 
     public void tick() {
         switch (cycleInOp) {
-            case  0 -> {
-                currentOp = OpCode.fromOpCode(memoryMap.get(regPC));
-            }
-            default -> {
-                switch (currentOp) {
-                    case OpCode.CPY_IMM -> handleCompare_IMM(regY);
-                    case OpCode.CPY_ZPG -> handleCompare_ZPG(regY);
-                    case OpCode.CPY_ABS -> handleCompare_ABS(regY);
-                    case OpCode.CPX_IMM -> handleCompare_IMM(regX);
-                    case OpCode.CPX_ZPG -> handleCompare_ZPG(regX);
-                    case OpCode.CPX_ABS -> handleCompare_ABS(regX);
-                    case OpCode.CMP_IMM -> handleCompare_IMM(regA);
-                    case OpCode.CMP_ZPG -> handleCompare_ZPG(regA);
-                    case OpCode.CMP_ABS -> handleCompare_ABS(regA);
-                    case OpCode.CMP_ZPX -> handleCMP_ZPX();
-                    case OpCode.CMP_ABX -> handleCMP_ABX();
-                }
-            }
+            case 0 -> fetchOperation();
+            case 1 -> fetchOperand0();
+            default -> handleOperation();
         }
         cycleInOp++;
+    }
+
+    private void handleOperation() {
+        switch (currentOp) {
+            case OpCode.CPY_IMM -> handleCompare_IMM(regY);
+            case OpCode.CPY_ZPG -> handleCompare_ZPG(regY);
+            case OpCode.CPY_ABS -> handleCompare_ABS(regY);
+            case OpCode.CPX_IMM -> handleCompare_IMM(regX);
+            case OpCode.CPX_ZPG -> handleCompare_ZPG(regX);
+            case OpCode.CPX_ABS -> handleCompare_ABS(regX);
+            case OpCode.CMP_IMM -> handleCompare_IMM(regA);
+            case OpCode.CMP_ZPG -> handleCompare_ZPG(regA);
+            case OpCode.CMP_ABS -> handleCompare_ABS(regA);
+            case OpCode.CMP_ZPX -> handleCMP_ZPX();
+            case OpCode.CMP_ABX -> handleCMP_ABX();
+        }
+    }
+
+    private void fetchOperation() {
+        currentOp = OpCode.fromOpCode(memoryMap.get(regPC));
     }
 
     public void tickUntilNextOp() {
@@ -90,65 +95,63 @@ public class CPU2A03 {
     }
 
     private void handleCompare_IMM(byte reg) {
-        handleCompareFinalCycle(reg, (short) (regPC + 1));
+        handleCompareFinalCycleImmediate(reg, op0);
     }
 
     private void handleCompare_ZPG(byte reg) {
-        if (cycleInOp == 1) {
-            fetchOp0();
-        } else {
-            handleCompareFinalCycle(reg, (short) Byte.toUnsignedInt(op0));
-        }
+        handleCompareFinalCycleAbsolute(reg, (short) toUint(op0));
     }
 
     private void handleCMP_ZPX() {
-        switch (cycleInOp) {
-            case 1 -> fetchOp0();
-            case 2 -> memoryMap.get((short) ((Byte.toUnsignedInt(op0))));
-            default -> handleCompareFinalCycle(regA, (short) ((Byte.toUnsignedInt(op0) + Byte.toUnsignedInt(regX)) % 256));
+        if (cycleInOp == 2) {
+            memoryMap.get((short) ((Byte.toUnsignedInt(op0))));
+        } else {
+            handleCompareFinalCycleAbsolute(regA, (short) ((Byte.toUnsignedInt(op0) + Byte.toUnsignedInt(regX)) % 256));
         }
     }
 
     private void handleCMP_ABX() {
         switch (cycleInOp) {
-            case 1 -> fetchOp0();
-            case 2 -> fetchOp1();
+            case 2 -> fetchOperand1();
             case 3 -> {
                 final int op0RegX = toUint(op0) + toUint(regX);
                 final short addr = (short) ((op0RegX % 0x100) | (op1 << 8));
                 if (op0RegX <= 0xff) {
                     cycleInOp++;
-                    handleCompareFinalCycle(regA, addr);
+                    handleCompareFinalCycleAbsolute(regA, addr);
                 } else {
                     memoryMap.get(addr);
                 }
             }
-            case 4 -> handleCompareFinalCycle(regA, (short) (((toUint(op0) + toUint(regX)) % 0x100) | ((op1 + 1) << 8)));
+            case 4 -> handleCompareFinalCycleAbsolute(regA, (short) (((toUint(op0) + toUint(regX)) % 0x100) | ((op1 + 1) << 8)));
         }
     }
 
     private void handleCompare_ABS(byte reg) {
-        switch (cycleInOp) {
-            case 1 -> fetchOp0();
-            case 2 -> fetchOp1();
-            default -> handleCompareFinalCycle(reg, (short) (toUint(op0) | (op1 << 8)));
+        if (cycleInOp == 2) {
+            fetchOperand1();
+        } else {
+            handleCompareFinalCycleAbsolute(reg, (short) (toUint(op0) | (op1 << 8)));
         }
     }
 
-    private void fetchOp0() {
+    private void fetchOperand0() {
         op0 = memoryMap.get((short) (regPC + 1));
     }
 
-    private void fetchOp1() {
+    private void fetchOperand1() {
         op1 = memoryMap.get((short) (regPC + 2));
     }
 
     private int toUint(byte byteValue) {
         return Byte.toUnsignedInt(byteValue);
     }
+    
+    private void handleCompareFinalCycleAbsolute(byte reg, short operandAddress) {
+        handleCompareFinalCycleImmediate(reg, memoryMap.get(operandAddress));
+    }
 
-    private void handleCompareFinalCycle(byte reg, short operandAddress) {
-        final byte operand = memoryMap.get(operandAddress);
+    private void handleCompareFinalCycleImmediate(byte reg, byte operand) {
         final int subtr = Byte.compareUnsigned(reg, operand);
         final byte flags =  (byte) (((subtr >>> 7) << BIT_NEGATIVE)
                 | (subtr == 0 ? BITMASK_ZERO : 0)
