@@ -76,6 +76,7 @@ public class CPU2A03 {
             case OpCode.CMP_IMM -> handleCompare_IMM(regA);
             case OpCode.CMP_ZPG -> handleCompare_ZPG(regA);
             case OpCode.CMP_ABS -> handleCompare_ABS(regA);
+            case OpCode.CMP_ZPX -> handleCMP_ZPX();
         }
     }
 
@@ -91,18 +92,34 @@ public class CPU2A03 {
 
     private void handleCompare_ZPG(byte reg) {
         if (cycleInOp == 2) {
-            inCycleVar0 = memoryMap.get((short) (regPC + 1));
+            fetchOp1();
         } else {
             handleCompareFinalCycle(reg, (short) Byte.toUnsignedInt(inCycleVar0));
         }
     }
 
+    private void handleCMP_ZPX() {
+        switch (cycleInOp) {
+            case 2 -> fetchOp1();
+            case 3 -> memoryMap.get((short) ((Byte.toUnsignedInt(inCycleVar0))));
+            default -> handleCompareFinalCycle(regA, (short) ((Byte.toUnsignedInt(inCycleVar0) + Byte.toUnsignedInt(regX)) % 256));
+        }
+    }
+
     private void handleCompare_ABS(byte reg) {
         switch (cycleInOp) {
-            case 2 -> inCycleVar0 = memoryMap.get((short) (regPC + 1));
-            case 3 -> inCycleVar1 = memoryMap.get((short) (regPC + 2));
+            case 2 -> fetchOp1();
+            case 3 -> fetchOp2();
             default -> handleCompareFinalCycle(reg, (short) ((inCycleVar0 & 0xff) | (inCycleVar1 << 8)));
         }
+    }
+
+    private void fetchOp1() {
+        inCycleVar0 = memoryMap.get((short) (regPC + 1));
+    }
+
+    private void fetchOp2() {
+        inCycleVar1 = memoryMap.get((short) (regPC + 2));
     }
 
     private void handleCompareFinalCycle(byte reg, short operandAddress) {

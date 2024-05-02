@@ -9,7 +9,8 @@ public enum OpCode {
     CPX_ABS((byte) 0xEC, 4, (short) 3),
     CMP_IMM((byte) 0xC9, 2, (short) 2),
     CMP_ZPG((byte) 0xC5, 3, (short) 2),
-    CMP_ABS((byte) 0xCD, 4, (short) 3);
+    CMP_ABS((byte) 0xCD, 4, (short) 3),
+    CMP_ZPX((byte) 0xD5, 4, (short) 2);
 
     final byte opCode;
     final int cycles;
