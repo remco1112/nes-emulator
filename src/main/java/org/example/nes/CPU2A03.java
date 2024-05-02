@@ -33,7 +33,7 @@ public class CPU2A03 {
     private final MemoryMap memoryMap;
 
     private OpCode currentOp = OpCode.CPY_IMM;
-    private int cycleInOp = currentOp.cycles - 1;
+    private int cycleInOp = 0;
 
     private byte op0;
     private byte op1;
@@ -60,31 +60,33 @@ public class CPU2A03 {
     }
 
     public void tick() {
-        if (cycleInOp == currentOp.cycles - 1) {
-            cycleInOp = 0;
-            currentOp = OpCode.fromOpCode(memoryMap.get(regPC));
-            return;
+        switch (cycleInOp) {
+            case  0 -> {
+                currentOp = OpCode.fromOpCode(memoryMap.get(regPC));
+            }
+            default -> {
+                switch (currentOp) {
+                    case OpCode.CPY_IMM -> handleCompare_IMM(regY);
+                    case OpCode.CPY_ZPG -> handleCompare_ZPG(regY);
+                    case OpCode.CPY_ABS -> handleCompare_ABS(regY);
+                    case OpCode.CPX_IMM -> handleCompare_IMM(regX);
+                    case OpCode.CPX_ZPG -> handleCompare_ZPG(regX);
+                    case OpCode.CPX_ABS -> handleCompare_ABS(regX);
+                    case OpCode.CMP_IMM -> handleCompare_IMM(regA);
+                    case OpCode.CMP_ZPG -> handleCompare_ZPG(regA);
+                    case OpCode.CMP_ABS -> handleCompare_ABS(regA);
+                    case OpCode.CMP_ZPX -> handleCMP_ZPX();
+                    case OpCode.CMP_ABX -> handleCMP_ABX();
+                }
+            }
         }
         cycleInOp++;
-        switch (currentOp) {
-            case OpCode.CPY_IMM -> handleCompare_IMM(regY);
-            case OpCode.CPY_ZPG -> handleCompare_ZPG(regY);
-            case OpCode.CPY_ABS -> handleCompare_ABS(regY);
-            case OpCode.CPX_IMM -> handleCompare_IMM(regX);
-            case OpCode.CPX_ZPG -> handleCompare_ZPG(regX);
-            case OpCode.CPX_ABS -> handleCompare_ABS(regX);
-            case OpCode.CMP_IMM -> handleCompare_IMM(regA);
-            case OpCode.CMP_ZPG -> handleCompare_ZPG(regA);
-            case OpCode.CMP_ABS -> handleCompare_ABS(regA);
-            case OpCode.CMP_ZPX -> handleCMP_ZPX();
-            case OpCode.CMP_ABX -> handleCMP_ABX();
-        }
     }
 
     public void tickUntilNextOp() {
         do {
             tick();
-        } while (cycleInOp < currentOp.cycles - 1);
+        } while (cycleInOp != 0);
     }
 
     private void handleCompare_IMM(byte reg) {
@@ -153,6 +155,7 @@ public class CPU2A03 {
                 | (subtr >= 0 ? BITMASK_CARRY : 0));
         applyCompareFlags(flags);
         incrementPC();
+        resetCycleInOp();
     }
 
     private void applyCompareFlags(byte flags) {
@@ -161,6 +164,10 @@ public class CPU2A03 {
 
     private void applyFlags(byte bitmask, byte flags) {
         regP = (byte) ((regP & ~bitmask) | flags);
+    }
+
+    private void resetCycleInOp() {
+        cycleInOp = -1;
     }
 
     private void incrementPC() {

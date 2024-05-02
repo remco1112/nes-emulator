@@ -1,25 +1,23 @@
 package org.example.nes;
 
 public enum OpCode {
-    CPY_IMM((byte) 0xC0, 2, (short) 2),
-    CPY_ZPG((byte) 0xC4, 3, (short) 2),
-    CPY_ABS((byte) 0xCC, 4, (short) 3),
-    CPX_IMM((byte) 0xE0, 2, (short) 2),
-    CPX_ZPG((byte) 0xE4, 3, (short) 2),
-    CPX_ABS((byte) 0xEC, 4, (short) 3),
-    CMP_IMM((byte) 0xC9, 2, (short) 2),
-    CMP_ZPG((byte) 0xC5, 3, (short) 2),
-    CMP_ABS((byte) 0xCD, 4, (short) 3),
-    CMP_ZPX((byte) 0xD5, 4, (short) 2),
-    CMP_ABX((byte) 0xDD, 5, (short) 3);
+    CPY_IMM((byte) 0xC0, (short) 2),
+    CPY_ZPG((byte) 0xC4, (short) 2),
+    CPY_ABS((byte) 0xCC, (short) 3),
+    CPX_IMM((byte) 0xE0, (short) 2),
+    CPX_ZPG((byte) 0xE4, (short) 2),
+    CPX_ABS((byte) 0xEC, (short) 3),
+    CMP_IMM((byte) 0xC9, (short) 2),
+    CMP_ZPG((byte) 0xC5, (short) 2),
+    CMP_ABS((byte) 0xCD, (short) 3),
+    CMP_ZPX((byte) 0xD5, (short) 2),
+    CMP_ABX((byte) 0xDD, (short) 3);
 
     final byte opCode;
-    final int cycles;
     final short size;
 
-    OpCode(byte opCode, int cycles, short size) {
+    OpCode(byte opCode, short size) {
         this.opCode = opCode;
-        this.cycles = cycles;
         this.size = size;
     }
 
