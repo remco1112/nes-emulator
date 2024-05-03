@@ -37,6 +37,7 @@ public class CPU2A03 {
 
     private byte op0;
     private byte op1;
+    private short indirectAddress;
 
     CPU2A03(MemoryMap memoryMap) {
         this(
@@ -82,6 +83,7 @@ public class CPU2A03 {
             case OpCode.CMP_ZPX -> handleCMP_ZPX();
             case OpCode.CMP_ABX -> handleCMP_ABX();
             case OpCode.CMP_ABY -> handleCMP_ABY();
+            case OpCode.CMP_XIN -> handleCMP_XIN();
         }
     }
 
@@ -149,6 +151,15 @@ public class CPU2A03 {
 
     private void handleCPY_IMM() {
         handleCompareImmediate(regY);
+    }
+
+    private void handleCMP_XIN() {
+        switch (cycleInOp) {
+            case 2 -> memoryMap.get((short) toUint(op0));
+            case 3 -> indirectAddress = (short) toUint(memoryMap.get(getZeroPageAddress(regX)));
+            case 4 -> indirectAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress(regX)) + 1) % 0x100))) << 8);
+            case 5 -> handleCompareFinalCycleAbsolute(regA, indirectAddress);
+        }
     }
 
     private void handleCompareAbsolute(byte comparisonTarget) {
