@@ -70,17 +70,18 @@ public class CPU2A03 {
 
     private void handleOperation() {
         switch (currentOp) {
-            case OpCode.CPY_IMM -> handleCompare_IMM(regY);
-            case OpCode.CPY_ZPG -> handleCompare_ZPG(regY);
-            case OpCode.CPY_ABS -> handleCompare_ABS(regY);
-            case OpCode.CPX_IMM -> handleCompare_IMM(regX);
-            case OpCode.CPX_ZPG -> handleCompare_ZPG(regX);
-            case OpCode.CPX_ABS -> handleCompare_ABS(regX);
-            case OpCode.CMP_IMM -> handleCompare_IMM(regA);
-            case OpCode.CMP_ZPG -> handleCompare_ZPG(regA);
-            case OpCode.CMP_ABS -> handleCompare_ABS(regA);
+            case OpCode.CPY_IMM -> handleCPY_IMM();
+            case OpCode.CPY_ZPG -> handleCPY_ZPG();
+            case OpCode.CPY_ABS -> handleCPY_ABS();
+            case OpCode.CPX_IMM -> handleCPX_IMM();
+            case OpCode.CPX_ZPG -> handleCPX_ZPG();
+            case OpCode.CPX_ABS -> handleCPX_ABS();
+            case OpCode.CMP_IMM -> handleCMP_IMM();
+            case OpCode.CMP_ZPG -> handleCMP_ZPG();
+            case OpCode.CMP_ABS -> handleCMP_ABS();
             case OpCode.CMP_ZPX -> handleCMP_ZPX();
             case OpCode.CMP_ABX -> handleCMP_ABX();
+            case OpCode.CMP_ABY -> handleCMP_ABY();
         }
     }
 
@@ -92,10 +93,6 @@ public class CPU2A03 {
         do {
             tick();
         } while (cycleInOp != 0);
-    }
-
-    private void handleCompare_IMM(byte reg) {
-        handleCompareFinalCycleImmediate(reg, op0);
     }
 
     private void handleCompare_ZPG(byte reg) {
@@ -111,19 +108,71 @@ public class CPU2A03 {
     }
 
     private void handleCMP_ABX() {
+        handleCompareAbsolute(regA, regX);
+    }
+
+    private void handleCMP_ABY() {
+        handleCompareAbsolute(regA, regY);
+    }
+
+    private void handleCMP_ABS() {
+        handleCompareAbsolute(regA);
+    }
+
+    private void handleCMP_ZPG() {
+        handleCompare_ZPG(regA);
+    }
+
+    private void handleCMP_IMM() {
+        handleCompareImmediate(regA);
+    }
+
+    private void handleCPX_ABS() {
+        handleCompareAbsolute(regX);
+    }
+
+    private void handleCPX_ZPG() {
+        handleCompare_ZPG(regX);
+    }
+
+    private void handleCPX_IMM() {
+        handleCompareImmediate(regX);
+    }
+
+    private void handleCPY_ABS() {
+        handleCompareAbsolute(regY);
+    }
+
+    private void handleCPY_ZPG() {
+        handleCompare_ZPG(regY);
+    }
+
+    private void handleCPY_IMM() {
+        handleCompareImmediate(regY);
+    }
+
+    private void handleCompareAbsolute(byte comparisonTarget) {
+        handleCompareAbsolute(comparisonTarget, (byte) 0);
+    }
+
+    private void handleCompareAbsolute(byte comparisonTarget, byte offset) {
         switch (cycleInOp) {
             case 2 -> fetchOperand1();
             case 3 -> {
-                final short addr = getAddressFromOperandsAndOffsetWithCarry(regX);
+                final short addr = getAddressFromOperandsAndOffsetWithCarry(offset);
                 if (addressInPage(addr)) {
                     cycleInOp++;
-                    handleCompareFinalCycleAbsolute(regA, addr);
+                    handleCompareFinalCycleAbsolute(comparisonTarget, addr);
                 } else {
                     memoryMap.get(subtractPage(addr));
                 }
             }
-            case 4 -> handleCompareFinalCycleAbsolute(regA, getAddressFromOperandsAndOffsetWithCarry(regX));
+            case 4 -> handleCompareFinalCycleAbsolute(comparisonTarget, getAddressFromOperandsAndOffsetWithCarry(offset));
         }
+    }
+
+    private void handleCompareImmediate(byte reg) {
+        handleCompareImmediate(reg, op0);
     }
 
     private short subtractPage(short address) {
@@ -156,14 +205,6 @@ public class CPU2A03 {
         return (short) ((op0WithOffset % 0x100) | (toUint(operand1) << 8));
     }
 
-    private void handleCompare_ABS(byte reg) {
-        if (cycleInOp == 2) {
-            fetchOperand1();
-        } else {
-            handleCompareFinalCycleAbsolute(reg, getAddressFromOperands());
-        }
-    }
-
     private void fetchOperand0() {
         op0 = memoryMap.get((short) (regPC + 1));
     }
@@ -181,10 +222,10 @@ public class CPU2A03 {
     }
     
     private void handleCompareFinalCycleAbsolute(byte reg, short operandAddress) {
-        handleCompareFinalCycleImmediate(reg, memoryMap.get(operandAddress));
+        handleCompareImmediate(reg, memoryMap.get(operandAddress));
     }
 
-    private void handleCompareFinalCycleImmediate(byte reg, byte operand) {
+    private void handleCompareImmediate(byte reg, byte operand) {
         final int subtr = Byte.compareUnsigned(reg, operand);
         final byte flags =  (byte) (((subtr >>> 7) << BIT_NEGATIVE)
                 | (subtr == 0 ? BITMASK_ZERO : 0)
