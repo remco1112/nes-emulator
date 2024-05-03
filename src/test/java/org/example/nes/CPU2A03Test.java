@@ -8,7 +8,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CPU2A03Test {
+
+    private static final String TEST_CASE_TEMP_DIR = "nes6502";
+    private static final String TEST_CASE_BASE_URL = "https://raw.githubusercontent.com/TomHarte/ProcessorTests/main/nes6502/v1/";
 
     @ParameterizedTest
     @MethodSource
@@ -45,10 +51,18 @@ public class CPU2A03Test {
 
     static List<TestCase> test() throws IOException {
         final ObjectMapper objectMapper = new ObjectMapper();
-        List<TestCase> testCases = new ArrayList<>(10000);
+        List<TestCase> testCases = new ArrayList<>(OpCode.values().length * 10000);
+        final Path testCaseDir = Files.createDirectories(Path.of(System.getProperty("java.io.tmpdir"), TEST_CASE_TEMP_DIR));
         for (OpCode opCode : OpCode.values()) {
-            final String opCodeString = Integer.toUnsignedString(Byte.toUnsignedInt(opCode.opCode), 16);
-            final List<TestCase> testCasesForOpCode = objectMapper.readValue(URI.create("https://raw.githubusercontent.com/TomHarte/ProcessorTests/main/nes6502/v1/" + opCodeString + ".json").toURL(), new TypeReference<>() {});
+            final String fileName = Integer.toUnsignedString(Byte.toUnsignedInt(opCode.opCode), 16) + ".json";
+            final Path filePath = testCaseDir.resolve(fileName);
+            if (!Files.exists(filePath)) {
+                try (InputStream in = URI.create(TEST_CASE_BASE_URL).resolve(fileName).toURL().openStream()) {
+                    System.out.println("Downloading: " + fileName);
+                    Files.copy(in, filePath);
+                }
+            }
+            final List<TestCase> testCasesForOpCode = objectMapper.readValue(filePath.toFile(), new TypeReference<>() {});
             testCases.addAll(testCasesForOpCode);
         }
         return testCases;
