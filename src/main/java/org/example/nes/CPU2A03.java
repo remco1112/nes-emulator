@@ -105,13 +105,19 @@ public class CPU2A03 {
             case 1 -> {
                 fetchOperand1();
                 operandAddress = getAddressFromOperandsAndOffsetWithCarry(offset);
-                if (addressInPage(operandAddress)) {
+                if (shouldSkipCycleAbsolute()) {
                     cycleInInstruction++;
                 }
             }
-            case 2 -> memoryMap.get(subtractPage(operandAddress));
+            case 2 -> memoryMap.get(addressInPage(operandAddress) ? operandAddress : subtractPage(operandAddress));
         }
     }
+
+    private boolean shouldSkipCycleAbsolute() {
+        return currentOp.addressMode == AddressMode.ABSOLUTE ||
+                (addressInPage(operandAddress) && !currentOp.operation.writesToMemory);
+    }
+
 
     private void handleAddressingZeroPage() {
         fetchOperand0();
@@ -163,6 +169,7 @@ public class CPU2A03 {
         switch (currentOp.operation) {
             case ADC -> handleADC();
             case AND -> handleAND();
+            case ASL -> handleASL();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
@@ -190,8 +197,7 @@ public class CPU2A03 {
         final boolean carry = getCarry();
         final int operand = toUint(memoryMap.get(operandAddress));
         int res = toUint(regA) + operand + (carry ? 1 : 0);
-        final byte flags =  (byte) (getFlagsZN((byte) res)
-                | (res > 0xff ? BITMASK_CARRY : 0)
+        final byte flags =  (byte) (getFlagsZNC(res)
                 | ((toUint(regA) >>> 7 == operand >>> 7) && (operand >>> 7 != toUint((byte) res) >>> 7) ? BITMASK_OVERFLOW : 0)
         );
         regA = (byte) res;
@@ -203,6 +209,27 @@ public class CPU2A03 {
         regA = (byte) (toUint(regA) & toUint(memoryMap.get(operandAddress)));
         applyFlags(BITMASK_ZN, getFlagsZN(regA));
         nextOp();
+    }
+
+    private void handleASL() {
+        switch (getCycleInOperation()) {
+            case 0 -> {
+                op0 = memoryMap.get(operandAddress);
+                if (currentOp.addressMode == AddressMode.ACCUMULATOR) {
+                    final int res = toUint(regA) << 1;
+                    applyFlags(BITMASK_ZNC, getFlagsZNC(res));
+                    regA = (byte) res;
+                    nextOp();
+                }
+            }
+            case 1 -> memoryMap.set(operandAddress, op0);
+            case 2 -> {
+                final int res = toUint(op0) << 1;
+                memoryMap.set(operandAddress, (byte) res);
+                applyFlags(BITMASK_ZNC, getFlagsZNC(res));
+                nextOp();
+            }
+        }
     }
 
     private void nextOp() {
@@ -217,6 +244,11 @@ public class CPU2A03 {
     private byte getFlagsZN(byte res) {
         return (byte) (((res >>> 7) << BIT_NEGATIVE)
                 | (res == 0 ? BITMASK_ZERO : 0));
+    }
+
+    private byte getFlagsZNC(int res) {
+        return (byte) (getFlagsZN((byte) res)
+                | (res > 0xff ? BITMASK_CARRY : 0));
     }
 
     private void handleCMP() {

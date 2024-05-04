@@ -4,23 +4,23 @@ public enum Operation {
     LDA,
     LDX,
     LDY,
-    STA,
-    STX,
-    STY,
+    STA(true),
+    STX(true),
+    STY(true),
     TAX,
     TAY,
     TSX,
     TXA,
     TXS,
     TYA,
-    PHA,
-    PHP,
+    PHA(true),
+    PHP(true),
     PLA,
     PLP,
-    DEC,
+    DEC(true),
     DEX,
     DEY,
-    INC,
+    INC(true),
     INX,
     INY,
     ADC,
@@ -28,10 +28,10 @@ public enum Operation {
     AND,
     EOR,
     ORA,
-    ASL,
-    LSR,
-    ROL,
-    ROR,
+    ASL(true),
+    LSR(true),
+    ROL(true),
+    ROR(true),
     CLC,
     CLD,
     CLI,
@@ -50,11 +50,21 @@ public enum Operation {
     BPL,
     BVC,
     BVS,
-    JMP,
-    JSR,
+    JMP(true),
+    JSR(true),
     RTS,
     BRK,
     RTI,
     BIT,
-    NOP
+    NOP;
+
+    final boolean writesToMemory;
+
+    Operation() {
+        this(false);
+    }
+
+    Operation(boolean writesToMemory) {
+        this.writesToMemory = writesToMemory;
+    }
 }
