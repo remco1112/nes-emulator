@@ -2,9 +2,9 @@ package org.example.nes;
 
 public enum AddressMode {
     ACCUMULATOR(0),
-    ABSOLUTE(0),
-    ABSOLUTE_X_INDEXED(0),
-    ABSOLUTE_Y_INDEXED(0),
+    ABSOLUTE(3),
+    ABSOLUTE_X_INDEXED(3),
+    ABSOLUTE_Y_INDEXED(3),
     IMMEDIATE(0),
     IMPLIED(0),
     INDIRECT(0),

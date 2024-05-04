@@ -75,14 +75,9 @@ public class CPU2A03 {
 
     private void handleAddressing() {
         switch (currentOp.addressMode) {
-            case ABSOLUTE -> {
-            }
-            case ABSOLUTE_X_INDEXED -> {
-            }
-            case ABSOLUTE_Y_INDEXED -> {
-            }
-            case IMMEDIATE -> {
-            }
+            case ABSOLUTE -> handleAddressingAbsolute();
+            case ABSOLUTE_X_INDEXED -> handleAddressingAbsoluteXIndexed();
+            case ABSOLUTE_Y_INDEXED -> handleAddressingAbsoluteYIndexed();
             case X_INDEXED_INDIRECT -> {
             }
             case INDIRECT_Y_INDEXED -> {
@@ -94,6 +89,32 @@ public class CPU2A03 {
             case ZEROPAGE_Y_INDEXED -> {
             }
             default -> throw new UnsupportedOperationException("Not yet implemented");
+        }
+    }
+
+    private void handleAddressingAbsolute() {
+        handleAddressingAbsolute((byte) 0);
+    }
+
+    private void handleAddressingAbsoluteXIndexed() {
+        handleAddressingAbsolute(regX);
+    }
+
+    private void handleAddressingAbsoluteYIndexed() {
+        handleAddressingAbsolute(regY);
+    }
+
+    private void handleAddressingAbsolute(byte offset) {
+        switch (getCycleInAddressing()) {
+            case 0 -> fetchOperand0();
+            case 1 -> {
+                fetchOperand1();
+                operandAddress = getAddressFromOperandsAndOffsetWithCarry(offset);
+                if (addressInPage(operandAddress)) {
+                    cycleInInstruction++;
+                }
+            }
+            case 2 -> memoryMap.get(subtractPage(operandAddress));
         }
     }
 
@@ -155,11 +176,11 @@ public class CPU2A03 {
     }
 
     private void handleCMP_ABX() {
-        handleCompareAbsolute(regA, regX);
+        handleCompareAbsolute(regA);
     }
 
     private void handleCMP_ABY() {
-        handleCompareAbsolute(regA, regY);
+        handleCompareAbsolute(regA);
     }
 
     private void handleCMP_ABS() {
@@ -227,24 +248,7 @@ public class CPU2A03 {
     }
 
     private void handleCompareAbsolute(byte comparisonTarget) {
-        handleCompareAbsolute(comparisonTarget, (byte) 0);
-    }
-
-    private void handleCompareAbsolute(byte comparisonTarget, byte offset) {
-        switch (getCycleInOperation()) {
-            case 0 -> fetchOperand0();
-            case 1 -> fetchOperand1();
-            case 2 -> {
-                final short addr = getAddressFromOperandsAndOffsetWithCarry(offset);
-                if (addressInPage(addr)) {
-                    cycleInInstruction++;
-                    handleCompareFinalCycleAbsolute(comparisonTarget, addr);
-                } else {
-                    memoryMap.get(subtractPage(addr));
-                }
-            }
-            case 3 -> handleCompareFinalCycleAbsolute(comparisonTarget, getAddressFromOperandsAndOffsetWithCarry(offset));
-        }
+        handleCompareFinalCycleAbsolute(comparisonTarget, operandAddress);
     }
 
     private short subtractPage(short address) {
