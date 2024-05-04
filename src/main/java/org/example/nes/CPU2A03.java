@@ -78,8 +78,7 @@ public class CPU2A03 {
             case ABSOLUTE -> handleAddressingAbsolute();
             case ABSOLUTE_X_INDEXED -> handleAddressingAbsoluteXIndexed();
             case ABSOLUTE_Y_INDEXED -> handleAddressingAbsoluteYIndexed();
-            case X_INDEXED_INDIRECT -> {
-            }
+            case X_INDEXED_INDIRECT -> handleAddressingXIndexedIndirect();
             case INDIRECT_Y_INDEXED -> {
             }
             case ZEROPAGE -> handleAddressingZeroPage();
@@ -125,6 +124,15 @@ public class CPU2A03 {
         } else {
             memoryMap.get((short) toUint(op0));
             operandAddress = getZeroPageAddress(regX);
+        }
+    }
+
+    private void handleAddressingXIndexedIndirect() {
+        switch (getCycleInAddressing()) {
+            case 0 -> fetchOperand0();
+            case 1 -> memoryMap.get((short) toUint(op0));
+            case 2 -> operandAddress = (short) toUint(memoryMap.get(getZeroPageAddress(regX)));
+            case 3 -> operandAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress(regX)) + 1) % 0x100))) << 8);
         }
     }
 
@@ -222,13 +230,7 @@ public class CPU2A03 {
     }
 
     private void handleCMP_XIN() {
-        switch (getCycleInOperation()) {
-            case 0 -> fetchOperand0();
-            case 1 -> memoryMap.get((short) toUint(op0));
-            case 2 -> indirectAddress = (short) toUint(memoryMap.get(getZeroPageAddress(regX)));
-            case 3 -> indirectAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress(regX)) + 1) % 0x100))) << 8);
-            case 4 -> handleCompareFinalCycleAbsolute(regA, indirectAddress);
-        }
+        handleCompareFinalCycleAbsolute(regA, operandAddress);
     }
 
     private void handleCMP_YIN() {
