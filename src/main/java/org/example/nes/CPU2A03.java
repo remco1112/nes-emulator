@@ -129,10 +129,13 @@ public class CPU2A03 {
         operandAddress = (short) (toUint(regPC) + 1);
     }
 
-    public void tickUntilNextOp() {
+    public int tickUntilNextOp() {
+        int cycles = 0;
         do {
             tick();
+            cycles++;
         } while (cycleInInstruction != 0);
+        return cycles;
     }
 
     private void handleCompare_ZPG(byte reg) {
@@ -245,11 +248,8 @@ public class CPU2A03 {
     }
 
     private void handleCompareImmediate(byte reg) {
-        if (getCycleInOperation() == 0) {
             fetchOperand0();
-        } else {
             handleCompareImmediate(reg, op0);
-        }
     }
 
     private short subtractPage(short address) {

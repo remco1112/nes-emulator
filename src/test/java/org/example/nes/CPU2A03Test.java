@@ -37,7 +37,7 @@ public class CPU2A03Test {
                 testCase.initialState.p
         );
 
-        cpu.tickUntilNextOp();
+        final int cycles = cpu.tickUntilNextOp();
 
         assertEquals(testCase.finalState.pc, cpu.getRegPC());
         assertEquals(testCase.finalState.sp, cpu.getRegSP());
@@ -46,6 +46,9 @@ public class CPU2A03Test {
         assertEquals(testCase.finalState.y, cpu.getRegY());
         assertEquals(testCase.finalState.p, cpu.getRegP());
         assertArrayEquals(testCase.finalState.ramAsByteArray(), cpu.getMemoryMap().asByteArray());
+
+        final List<Cycle> memoryMapLog = ((RecordingMemoryMap) cpu.getMemoryMap()).getLog();
+        assertEquals(cycles, memoryMapLog.size(), "Mismatch between number of CPU cycles and memory access count");
         assertEquals(testCase.cycles, ((RecordingMemoryMap) cpu.getMemoryMap()).getLog());
     }
 
