@@ -162,6 +162,10 @@ public class CPU2A03 {
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
+            default -> {
+                incrementPC();
+                resetCycleInOp();
+            }
         }
     }
 
