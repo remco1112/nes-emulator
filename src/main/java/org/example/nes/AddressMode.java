@@ -11,7 +11,7 @@ public enum AddressMode {
     X_INDEXED_INDIRECT(0),
     INDIRECT_Y_INDEXED(0),
     RELATIVE(0),
-    ZEROPAGE(0),
+    ZEROPAGE(1),
     ZEROPAGE_X_INDEXED(0),
     ZEROPAGE_Y_INDEXED(0);
 
