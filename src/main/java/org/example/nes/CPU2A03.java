@@ -39,7 +39,6 @@ public class CPU2A03 {
 
     private byte op0;
     private byte op1;
-    private short indirectAddress;
 
     CPU2A03(MemoryMap memoryMap) {
         this(
@@ -159,21 +158,10 @@ public class CPU2A03 {
     }
 
     private void handleOperation() {
-        switch (currentOp) {
-            case OpCode.CPY_IMM -> handleCPY_IMM();
-            case OpCode.CPY_ZPG -> handleCPY_ZPG();
-            case OpCode.CPY_ABS -> handleCPY_ABS();
-            case OpCode.CPX_IMM -> handleCPX_IMM();
-            case OpCode.CPX_ZPG -> handleCPX_ZPG();
-            case OpCode.CPX_ABS -> handleCPX_ABS();
-            case OpCode.CMP_IMM -> handleCMP_IMM();
-            case OpCode.CMP_ZPG -> handleCMP_ZPG();
-            case OpCode.CMP_ABS -> handleCMP_ABS();
-            case OpCode.CMP_ZPX -> handleCMP_ZPX();
-            case OpCode.CMP_ABX -> handleCMP_ABX();
-            case OpCode.CMP_ABY -> handleCMP_ABY();
-            case OpCode.CMP_XIN -> handleCMP_XIN();
-            case OpCode.CMP_INY -> handleCMP_YIN();
+        switch (currentOp.operation) {
+            case CPX -> handleCPX();
+            case CPY -> handleCPY();
+            case CMP -> handleCMP();
         }
     }
 
@@ -191,68 +179,16 @@ public class CPU2A03 {
         return cycles;
     }
 
-    private void handleCompare_ZPG(byte reg) {
-        handleCompareFinalCycleAbsolute(reg, operandAddress);
-    }
-
-    private void handleCMP_ZPX() {
-        handleCompareFinalCycleAbsolute(regA, operandAddress);
-    }
-
-    private void handleCMP_ABX() {
-        handleCompareAbsolute(regA);
-    }
-
-    private void handleCMP_ABY() {
-        handleCompareAbsolute(regA);
-    }
-
-    private void handleCMP_ABS() {
-        handleCompareAbsolute(regA);
-    }
-
-    private void handleCMP_ZPG() {
-        handleCompare_ZPG(regA);
-    }
-
-    private void handleCMP_IMM() {
+    private void handleCMP() {
         handleCompare(regA);
     }
 
-    private void handleCPX_ABS() {
-        handleCompareAbsolute(regX);
-    }
-
-    private void handleCPX_ZPG() {
-        handleCompare_ZPG(regX);
-    }
-
-    private void handleCPX_IMM() {
+    private void handleCPX() {
         handleCompare(regX);
     }
 
-    private void handleCPY_ABS() {
-        handleCompareAbsolute(regY);
-    }
-
-    private void handleCPY_ZPG() {
-        handleCompare_ZPG(regY);
-    }
-
-    private void handleCPY_IMM() {
+    private void handleCPY() {
         handleCompare(regY);
-    }
-
-    private void handleCMP_XIN() {
-        handleCompareFinalCycleAbsolute(regA, operandAddress);
-    }
-
-    private void handleCMP_YIN() {
-        handleCompareFinalCycleAbsolute(regA, operandAddress);
-    }
-
-    private void handleCompareAbsolute(byte comparisonTarget) {
-        handleCompareFinalCycleAbsolute(comparisonTarget, operandAddress);
     }
 
     private short subtractPage(short address) {
@@ -303,11 +239,6 @@ public class CPU2A03 {
 
     private int toUint(short shortValue) {
         return Short.toUnsignedInt(shortValue);
-    }
-    
-    private void handleCompareFinalCycleAbsolute(byte reg, short operandAddress) {
-        this.operandAddress = operandAddress;
-        handleCompare(reg);
     }
 
     private void handleCompare(byte reg) {
