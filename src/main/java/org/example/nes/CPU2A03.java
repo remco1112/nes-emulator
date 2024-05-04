@@ -79,8 +79,7 @@ public class CPU2A03 {
             case ABSOLUTE_X_INDEXED -> handleAddressingAbsoluteXIndexed();
             case ABSOLUTE_Y_INDEXED -> handleAddressingAbsoluteYIndexed();
             case X_INDEXED_INDIRECT -> handleAddressingXIndexedIndirect();
-            case INDIRECT_Y_INDEXED -> {
-            }
+            case INDIRECT_Y_INDEXED -> handleAddressingIndirectYIndexed();
             case ZEROPAGE -> handleAddressingZeroPage();
             case ZEROPAGE_X_INDEXED -> handleAddressingZeroPageXIndexed();
             default -> throw new UnsupportedOperationException("Not yet implemented");
@@ -132,7 +131,22 @@ public class CPU2A03 {
             case 0 -> fetchOperand0();
             case 1 -> memoryMap.get((short) toUint(op0));
             case 2 -> operandAddress = (short) toUint(memoryMap.get(getZeroPageAddress(regX)));
-            case 3 -> operandAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress(regX)) + 1) % 0x100))) << 8);
+            case 3 -> operandAddress = (short) (toUint(operandAddress) | (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress(regX)) + 1) % 0x100))) << 8));
+        }
+    }
+
+    private void handleAddressingIndirectYIndexed() {
+        switch (getCycleInAddressing()) {
+            case 0 -> fetchOperand0();
+            case 1 -> operandAddress = (short) toUint(memoryMap.get(getZeroPageAddress()));
+            case 2 -> {
+                operandAddress = (short) (toUint(operandAddress) | (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress()) + 1) % 0x100))) << 8));
+                if (toUint(operandAddress) >>> 8 == (toUint(operandAddress) + toUint(regY)) >> 8) {
+                    cycleInInstruction++;
+                }
+                operandAddress = (short) (toUint(operandAddress) + toUint(regY));
+            }
+            case 3 -> memoryMap.get(subtractPage(operandAddress));
         }
     }
 
@@ -234,21 +248,7 @@ public class CPU2A03 {
     }
 
     private void handleCMP_YIN() {
-        switch (getCycleInOperation()) {
-            case 0 -> fetchOperand0();
-            case 1 -> indirectAddress = (short) toUint(memoryMap.get(getZeroPageAddress()));
-            case 2 -> indirectAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress()) + 1) % 0x100))) << 8);
-            case 3 -> {
-                final short addr = (short) (toUint(indirectAddress) + toUint(regY));
-                if (toUint(indirectAddress) >>> 8 == (toUint(indirectAddress) + toUint(regY)) >> 8) {
-                    cycleInInstruction++;
-                    handleCompareFinalCycleAbsolute(regA, addr);
-                } else {
-                    memoryMap.get(subtractPage(addr));
-                }
-            }
-            case 4 -> handleCompareFinalCycleAbsolute(regA, (short) (toUint(indirectAddress) + toUint(regY)));
-        }
+        handleCompareFinalCycleAbsolute(regA, operandAddress);
     }
 
     private void handleCompareAbsolute(byte comparisonTarget) {

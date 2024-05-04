@@ -9,7 +9,7 @@ public enum AddressMode {
     IMPLIED(0),
     INDIRECT(0),
     X_INDEXED_INDIRECT(4),
-    INDIRECT_Y_INDEXED(0),
+    INDIRECT_Y_INDEXED(4),
     RELATIVE(0),
     ZEROPAGE(1),
     ZEROPAGE_X_INDEXED(2),
