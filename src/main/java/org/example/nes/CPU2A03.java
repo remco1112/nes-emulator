@@ -33,7 +33,9 @@ public class CPU2A03 {
     private final MemoryMap memoryMap;
 
     private OpCode currentOp = OpCode.CPY_IMM;
-    private int cycleInOp = 0;
+    private int cycleInInstruction = 0;
+
+    private short operandAddress;
 
     private byte op0;
     private byte op1;
@@ -61,12 +63,46 @@ public class CPU2A03 {
     }
 
     public void tick() {
-        switch (cycleInOp) {
-            case 0 -> fetchOperation();
-            case 1 -> fetchOperand0();
-            default -> handleOperation();
+        if (cycleInInstruction == 0) {
+            fetchOperation();
+        } else if (cycleInInstruction - 1 < currentOp.addressMode.cycles) {
+            handleAddressing();
+        } else {
+            handleOperation();
         }
-        cycleInOp++;
+        cycleInInstruction++;
+    }
+
+    private void handleAddressing() {
+        switch (currentOp.addressMode) {
+            case ABSOLUTE -> {
+            }
+            case ABSOLUTE_X_INDEXED -> {
+            }
+            case ABSOLUTE_Y_INDEXED -> {
+            }
+            case IMMEDIATE -> {
+            }
+            case X_INDEXED_INDIRECT -> {
+            }
+            case INDIRECT_Y_INDEXED -> {
+            }
+            case ZEROPAGE -> {
+            }
+            case ZEROPAGE_X_INDEXED -> {
+            }
+            case ZEROPAGE_Y_INDEXED -> {
+            }
+            default -> throw new UnsupportedOperationException("Not yet implemented");
+        }
+    }
+
+    private int getCycleInAddressing() {
+        return cycleInInstruction - 1;
+    }
+
+    private int getCycleInOperation() {
+        return cycleInInstruction - 1 - currentOp.addressMode.cycles;
     }
 
     private void handleOperation() {
@@ -84,29 +120,34 @@ public class CPU2A03 {
             case OpCode.CMP_ABX -> handleCMP_ABX();
             case OpCode.CMP_ABY -> handleCMP_ABY();
             case OpCode.CMP_XIN -> handleCMP_XIN();
-            case OpCode.CMP_YIN -> handleCMP_YIN();
+            case OpCode.CMP_INY -> handleCMP_YIN();
         }
     }
 
     private void fetchOperation() {
         currentOp = OpCode.fromOpCode(memoryMap.get(regPC));
+        operandAddress = (short) (toUint(regPC) + 1);
     }
 
     public void tickUntilNextOp() {
         do {
             tick();
-        } while (cycleInOp != 0);
+        } while (cycleInInstruction != 0);
     }
 
     private void handleCompare_ZPG(byte reg) {
-        handleCompareFinalCycleAbsolute(reg, (short) toUint(op0));
+        if (cycleInInstruction == 1) {
+            fetchOperand0();
+        } else {
+            handleCompareFinalCycleAbsolute(reg, (short) toUint(op0));
+        }
     }
 
     private void handleCMP_ZPX() {
-        if (cycleInOp == 2) {
-            memoryMap.get((short) toUint(op0));
-        } else {
-            handleCompareFinalCycleAbsolute(regA, getZeroPageAddress(regX));
+        switch (cycleInInstruction) {
+            case 1 -> fetchOperand0();
+            case 2 -> memoryMap.get((short) toUint(op0));
+            default -> handleCompareFinalCycleAbsolute(regA, getZeroPageAddress(regX));
         }
     }
 
@@ -155,7 +196,8 @@ public class CPU2A03 {
     }
 
     private void handleCMP_XIN() {
-        switch (cycleInOp) {
+        switch (cycleInInstruction) {
+            case 1 -> fetchOperand0();
             case 2 -> memoryMap.get((short) toUint(op0));
             case 3 -> indirectAddress = (short) toUint(memoryMap.get(getZeroPageAddress(regX)));
             case 4 -> indirectAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress(regX)) + 1) % 0x100))) << 8);
@@ -164,13 +206,14 @@ public class CPU2A03 {
     }
 
     private void handleCMP_YIN() {
-        switch (cycleInOp) {
+        switch (cycleInInstruction) {
+            case 1 -> fetchOperand0();
             case 2 -> indirectAddress = (short) toUint(memoryMap.get(getZeroPageAddress()));
             case 3 -> indirectAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress()) + 1) % 0x100))) << 8);
             case 4 -> {
                 final short addr = (short) (toUint(indirectAddress) + toUint(regY));
                 if (toUint(indirectAddress) >>> 8 == (toUint(indirectAddress) + toUint(regY)) >> 8) {
-                    cycleInOp++;
+                    cycleInInstruction++;
                     handleCompareFinalCycleAbsolute(regA, addr);
                 } else {
                     memoryMap.get(subtractPage(addr));
@@ -185,12 +228,13 @@ public class CPU2A03 {
     }
 
     private void handleCompareAbsolute(byte comparisonTarget, byte offset) {
-        switch (cycleInOp) {
+        switch (cycleInInstruction) {
+            case 1 -> fetchOperand0();
             case 2 -> fetchOperand1();
             case 3 -> {
                 final short addr = getAddressFromOperandsAndOffsetWithCarry(offset);
                 if (addressInPage(addr)) {
-                    cycleInOp++;
+                    cycleInInstruction++;
                     handleCompareFinalCycleAbsolute(comparisonTarget, addr);
                 } else {
                     memoryMap.get(subtractPage(addr));
@@ -201,7 +245,11 @@ public class CPU2A03 {
     }
 
     private void handleCompareImmediate(byte reg) {
-        handleCompareImmediate(reg, op0);
+        if (cycleInInstruction == 1) {
+            fetchOperand0();
+        } else {
+            handleCompareImmediate(reg, op0);
+        }
     }
 
     private short subtractPage(short address) {
@@ -277,7 +325,7 @@ public class CPU2A03 {
     }
 
     private void resetCycleInOp() {
-        cycleInOp = -1;
+        cycleInInstruction = -1;
     }
 
     private void incrementPC() {
