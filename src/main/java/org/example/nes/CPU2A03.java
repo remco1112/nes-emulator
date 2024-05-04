@@ -83,8 +83,7 @@ public class CPU2A03 {
             case INDIRECT_Y_INDEXED -> {
             }
             case ZEROPAGE -> handleAddressingZeroPage();
-            case ZEROPAGE_X_INDEXED -> {
-            }
+            case ZEROPAGE_X_INDEXED -> handleAddressingZeroPageXIndexed();
             default -> throw new UnsupportedOperationException("Not yet implemented");
         }
     }
@@ -118,6 +117,15 @@ public class CPU2A03 {
     private void handleAddressingZeroPage() {
         fetchOperand0();
         operandAddress = (short) toUint(op0);
+    }
+
+    private void handleAddressingZeroPageXIndexed() {
+        if (getCycleInAddressing() == 0) {
+            fetchOperand0();
+        } else {
+            memoryMap.get((short) toUint(op0));
+            operandAddress = getZeroPageAddress(regX);
+        }
     }
 
     private int getCycleInAddressing() {
@@ -166,11 +174,7 @@ public class CPU2A03 {
     }
 
     private void handleCMP_ZPX() {
-        switch (getCycleInOperation()) {
-            case 0 -> fetchOperand0();
-            case 1 -> memoryMap.get((short) toUint(op0));
-            default -> handleCompareFinalCycleAbsolute(regA, getZeroPageAddress(regX));
-        }
+        handleCompareFinalCycleAbsolute(regA, operandAddress);
     }
 
     private void handleCMP_ABX() {

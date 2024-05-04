@@ -12,7 +12,7 @@ public enum AddressMode {
     INDIRECT_Y_INDEXED(0),
     RELATIVE(0),
     ZEROPAGE(1),
-    ZEROPAGE_X_INDEXED(0),
+    ZEROPAGE_X_INDEXED(2),
     ZEROPAGE_Y_INDEXED(0);
 
     final int cycles;
