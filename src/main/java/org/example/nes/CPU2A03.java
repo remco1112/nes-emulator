@@ -84,6 +84,7 @@ public class CPU2A03 {
             case OpCode.CMP_ABX -> handleCMP_ABX();
             case OpCode.CMP_ABY -> handleCMP_ABY();
             case OpCode.CMP_XIN -> handleCMP_XIN();
+            case OpCode.CMP_YIN -> handleCMP_YIN();
         }
     }
 
@@ -162,6 +163,23 @@ public class CPU2A03 {
         }
     }
 
+    private void handleCMP_YIN() {
+        switch (cycleInOp) {
+            case 2 -> indirectAddress = (short) toUint(memoryMap.get(getZeroPageAddress()));
+            case 3 -> indirectAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress()) + 1) % 0x100))) << 8);
+            case 4 -> {
+                final short addr = (short) (toUint(indirectAddress) + toUint(regY));
+                if (toUint(indirectAddress) >>> 8 == (toUint(indirectAddress) + toUint(regY)) >> 8) {
+                    cycleInOp++;
+                    handleCompareFinalCycleAbsolute(regA, addr);
+                } else {
+                    memoryMap.get(subtractPage(addr));
+                }
+            }
+            case 5 -> handleCompareFinalCycleAbsolute(regA, (short) (toUint(indirectAddress) + toUint(regY)));
+        }
+    }
+
     private void handleCompareAbsolute(byte comparisonTarget) {
         handleCompareAbsolute(comparisonTarget, (byte) 0);
     }
@@ -205,6 +223,10 @@ public class CPU2A03 {
 
     private short getAddressFromOperandsAndOffsetWithoutCarry(byte offset) {
         return getAddressFromOperandsAndOffsetWithoutCarry(offset, op1);
+    }
+
+    private short getZeroPageAddress() {
+        return getZeroPageAddress((byte) 0);
     }
 
     private short getZeroPageAddress(byte offset) {

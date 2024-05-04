@@ -13,7 +13,8 @@ public enum OpCode {
     CMP_ZPX((byte) 0xD5, (short) 2),
     CMP_ABX((byte) 0xDD, (short) 3),
     CMP_ABY((byte) 0xD9, (short) 3),
-    CMP_XIN((byte) 0xC1, (short) 2);
+    CMP_XIN((byte) 0xC1, (short) 2),
+    CMP_YIN((byte) 0xD1, (short) 2);
 
     final byte opCode;
     final short size;
