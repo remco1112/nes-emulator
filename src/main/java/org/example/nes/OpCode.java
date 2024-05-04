@@ -1,28 +1,31 @@
 package org.example.nes;
 
 import static org.example.nes.AddressMode.*;
+import static org.example.nes.Operation.*;
 
 public enum OpCode {
-    CPY_IMM((byte) 0xC0, IMMEDIATE),
-    CPY_ZPG((byte) 0xC4, ZEROPAGE),
-    CPY_ABS((byte) 0xCC, ABSOLUTE),
-    CPX_IMM((byte) 0xE0, IMMEDIATE),
-    CPX_ZPG((byte) 0xE4, ZEROPAGE),
-    CPX_ABS((byte) 0xEC, ABSOLUTE),
-    CMP_IMM((byte) 0xC9, IMMEDIATE),
-    CMP_ZPG((byte) 0xC5, ZEROPAGE),
-    CMP_ABS((byte) 0xCD, ABSOLUTE),
-    CMP_ZPX((byte) 0xD5, ZEROPAGE_X_INDEXED),
-    CMP_ABX((byte) 0xDD, ABSOLUTE_X_INDEXED),
-    CMP_ABY((byte) 0xD9, ABSOLUTE_Y_INDEXED),
-    CMP_XIN((byte) 0xC1, X_INDEXED_INDIRECT),
-    CMP_INY((byte) 0xD1, INDIRECT_Y_INDEXED);
+    CPY_IMM((byte) 0xC0, CPY, IMMEDIATE),
+    CPY_ZPG((byte) 0xC4, CPY, ZEROPAGE),
+    CPY_ABS((byte) 0xCC, CPY, ABSOLUTE),
+    CPX_IMM((byte) 0xE0, CPX, IMMEDIATE),
+    CPX_ZPG((byte) 0xE4, CPX, ZEROPAGE),
+    CPX_ABS((byte) 0xEC, CPX, ABSOLUTE),
+    CMP_IMM((byte) 0xC9, CMP, IMMEDIATE),
+    CMP_ZPG((byte) 0xC5, CMP, ZEROPAGE),
+    CMP_ABS((byte) 0xCD, CMP, ABSOLUTE),
+    CMP_ZPX((byte) 0xD5, CMP, ZEROPAGE_X_INDEXED),
+    CMP_ABX((byte) 0xDD, CMP, ABSOLUTE_X_INDEXED),
+    CMP_ABY((byte) 0xD9, CMP, ABSOLUTE_Y_INDEXED),
+    CMP_XIN((byte) 0xC1, CMP, X_INDEXED_INDIRECT),
+    CMP_INY((byte) 0xD1, CMP, INDIRECT_Y_INDEXED);
 
     final byte opCode;
+    final Operation operation;
     final AddressMode addressMode;
 
-    OpCode(byte opCode, AddressMode addressMode) {
+    OpCode(byte opCode, Operation operation, AddressMode addressMode) {
         this.opCode = opCode;
+        this.operation = operation;
         this.addressMode = addressMode;
     }
 
