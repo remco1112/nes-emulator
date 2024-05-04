@@ -136,7 +136,7 @@ public class CPU2A03 {
     }
 
     private void handleCompare_ZPG(byte reg) {
-        if (cycleInInstruction == 1) {
+        if (getCycleInOperation() == 0) {
             fetchOperand0();
         } else {
             handleCompareFinalCycleAbsolute(reg, (short) toUint(op0));
@@ -144,9 +144,9 @@ public class CPU2A03 {
     }
 
     private void handleCMP_ZPX() {
-        switch (cycleInInstruction) {
-            case 1 -> fetchOperand0();
-            case 2 -> memoryMap.get((short) toUint(op0));
+        switch (getCycleInOperation()) {
+            case 0 -> fetchOperand0();
+            case 1 -> memoryMap.get((short) toUint(op0));
             default -> handleCompareFinalCycleAbsolute(regA, getZeroPageAddress(regX));
         }
     }
@@ -196,21 +196,21 @@ public class CPU2A03 {
     }
 
     private void handleCMP_XIN() {
-        switch (cycleInInstruction) {
-            case 1 -> fetchOperand0();
-            case 2 -> memoryMap.get((short) toUint(op0));
-            case 3 -> indirectAddress = (short) toUint(memoryMap.get(getZeroPageAddress(regX)));
-            case 4 -> indirectAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress(regX)) + 1) % 0x100))) << 8);
-            case 5 -> handleCompareFinalCycleAbsolute(regA, indirectAddress);
+        switch (getCycleInOperation()) {
+            case 0 -> fetchOperand0();
+            case 1 -> memoryMap.get((short) toUint(op0));
+            case 2 -> indirectAddress = (short) toUint(memoryMap.get(getZeroPageAddress(regX)));
+            case 3 -> indirectAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress(regX)) + 1) % 0x100))) << 8);
+            case 4 -> handleCompareFinalCycleAbsolute(regA, indirectAddress);
         }
     }
 
     private void handleCMP_YIN() {
-        switch (cycleInInstruction) {
-            case 1 -> fetchOperand0();
-            case 2 -> indirectAddress = (short) toUint(memoryMap.get(getZeroPageAddress()));
-            case 3 -> indirectAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress()) + 1) % 0x100))) << 8);
-            case 4 -> {
+        switch (getCycleInOperation()) {
+            case 0 -> fetchOperand0();
+            case 1 -> indirectAddress = (short) toUint(memoryMap.get(getZeroPageAddress()));
+            case 2 -> indirectAddress |= (short) (toUint(memoryMap.get((short) ((toUint(getZeroPageAddress()) + 1) % 0x100))) << 8);
+            case 3 -> {
                 final short addr = (short) (toUint(indirectAddress) + toUint(regY));
                 if (toUint(indirectAddress) >>> 8 == (toUint(indirectAddress) + toUint(regY)) >> 8) {
                     cycleInInstruction++;
@@ -219,7 +219,7 @@ public class CPU2A03 {
                     memoryMap.get(subtractPage(addr));
                 }
             }
-            case 5 -> handleCompareFinalCycleAbsolute(regA, (short) (toUint(indirectAddress) + toUint(regY)));
+            case 4 -> handleCompareFinalCycleAbsolute(regA, (short) (toUint(indirectAddress) + toUint(regY)));
         }
     }
 
@@ -228,10 +228,10 @@ public class CPU2A03 {
     }
 
     private void handleCompareAbsolute(byte comparisonTarget, byte offset) {
-        switch (cycleInInstruction) {
-            case 1 -> fetchOperand0();
-            case 2 -> fetchOperand1();
-            case 3 -> {
+        switch (getCycleInOperation()) {
+            case 0 -> fetchOperand0();
+            case 1 -> fetchOperand1();
+            case 2 -> {
                 final short addr = getAddressFromOperandsAndOffsetWithCarry(offset);
                 if (addressInPage(addr)) {
                     cycleInInstruction++;
@@ -240,12 +240,12 @@ public class CPU2A03 {
                     memoryMap.get(subtractPage(addr));
                 }
             }
-            case 4 -> handleCompareFinalCycleAbsolute(comparisonTarget, getAddressFromOperandsAndOffsetWithCarry(offset));
+            case 3 -> handleCompareFinalCycleAbsolute(comparisonTarget, getAddressFromOperandsAndOffsetWithCarry(offset));
         }
     }
 
     private void handleCompareImmediate(byte reg) {
-        if (cycleInInstruction == 1) {
+        if (getCycleInOperation() == 0) {
             fetchOperand0();
         } else {
             handleCompareImmediate(reg, op0);
