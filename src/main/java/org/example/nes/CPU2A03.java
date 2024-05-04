@@ -333,7 +333,7 @@ public class CPU2A03 {
     }
 
     private void incrementPC() {
-        regPC += currentOp.size;
+        regPC += (short) currentOp.addressMode.instructionSize;
     }
 
     public short getRegPC() {
