@@ -171,7 +171,7 @@ public class CPU2A03 {
     }
 
     private void handleCMP_IMM() {
-        handleCompareImmediate(regA);
+        handleCompare(regA);
     }
 
     private void handleCPX_ABS() {
@@ -183,7 +183,7 @@ public class CPU2A03 {
     }
 
     private void handleCPX_IMM() {
-        handleCompareImmediate(regX);
+        handleCompare(regX);
     }
 
     private void handleCPY_ABS() {
@@ -195,7 +195,7 @@ public class CPU2A03 {
     }
 
     private void handleCPY_IMM() {
-        handleCompareImmediate(regY);
+        handleCompare(regY);
     }
 
     private void handleCMP_XIN() {
@@ -245,11 +245,6 @@ public class CPU2A03 {
             }
             case 3 -> handleCompareFinalCycleAbsolute(comparisonTarget, getAddressFromOperandsAndOffsetWithCarry(offset));
         }
-    }
-
-    private void handleCompareImmediate(byte reg) {
-            fetchOperand0();
-            handleCompareImmediate(reg, op0);
     }
 
     private short subtractPage(short address) {
@@ -303,11 +298,12 @@ public class CPU2A03 {
     }
     
     private void handleCompareFinalCycleAbsolute(byte reg, short operandAddress) {
-        handleCompareImmediate(reg, memoryMap.get(operandAddress));
+        this.operandAddress = operandAddress;
+        handleCompare(reg);
     }
 
-    private void handleCompareImmediate(byte reg, byte operand) {
-        final int subtr = Byte.compareUnsigned(reg, operand);
+    private void handleCompare(byte reg) {
+        final int subtr = Byte.compareUnsigned(reg, memoryMap.get(operandAddress));
         final byte flags =  (byte) (((subtr >>> 7) << BIT_NEGATIVE)
                 | (subtr == 0 ? BITMASK_ZERO : 0)
                 | (subtr >= 0 ? BITMASK_CARRY : 0));
