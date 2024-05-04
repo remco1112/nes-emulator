@@ -21,8 +21,9 @@ public class CPU2A03 {
     private static final byte BITMASK_ZERO        = (byte) (1 << BIT_ZERO);
     private static final byte BITMASK_CARRY       = (byte) (1 << BIT_CARRY);
 
-    private static final byte BITMASK_CMP = BITMASK_NEGATIVE | BITMASK_ZERO | BITMASK_CARRY;
-    private static final byte BITMASK_ADC = BITMASK_NEGATIVE | BITMASK_ZERO | BITMASK_CARRY | BITMASK_OVERFLOW;
+    private static final byte BITMASK_ZN = BITMASK_ZERO | BITMASK_NEGATIVE;
+    private static final byte BITMASK_ZNC = BITMASK_ZN | BITMASK_CARRY;
+    private static final byte BITMASK_ZNCO = BITMASK_ZNC | BITMASK_OVERFLOW;
 
     private short regPC;
     private byte regSP;
@@ -161,12 +162,12 @@ public class CPU2A03 {
     private void handleOperation() {
         switch (currentOp.operation) {
             case ADC -> handleADC();
+            case AND -> handleAND();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
             default -> {
-                incrementPC();
-                resetCycleInOp();
+                nextOp();
             }
         }
     }
@@ -189,19 +190,33 @@ public class CPU2A03 {
         final boolean carry = getCarry();
         final int operand = toUint(memoryMap.get(operandAddress));
         int res = toUint(regA) + operand + (carry ? 1 : 0);
-        final byte flags =  (byte) (((res >>> 7) << BIT_NEGATIVE)
-                | (toUint((byte) res) == 0 ? BITMASK_ZERO : 0)
+        final byte flags =  (byte) (getFlagsZN((byte) res)
                 | (res > 0xff ? BITMASK_CARRY : 0)
                 | ((toUint(regA) >>> 7 == operand >>> 7) && (operand >>> 7 != toUint((byte) res) >>> 7) ? BITMASK_OVERFLOW : 0)
         );
         regA = (byte) res;
-        applyFlags(BITMASK_ADC, flags);
+        applyFlags(BITMASK_ZNCO, flags);
+        nextOp();
+    }
+
+    private void handleAND() {
+        regA = (byte) (toUint(regA) & toUint(memoryMap.get(operandAddress)));
+        applyFlags(BITMASK_ZN, getFlagsZN(regA));
+        nextOp();
+    }
+
+    private void nextOp() {
         incrementPC();
         resetCycleInOp();
     }
 
     private boolean getCarry() {
         return (regP & BITMASK_CARRY) == BITMASK_CARRY;
+    }
+
+    private byte getFlagsZN(byte res) {
+        return (byte) (((res >>> 7) << BIT_NEGATIVE)
+                | (res == 0 ? BITMASK_ZERO : 0));
     }
 
     private void handleCMP() {
@@ -268,16 +283,14 @@ public class CPU2A03 {
 
     private void handleCompare(byte reg) {
         final int subtr = Byte.compareUnsigned(reg, memoryMap.get(operandAddress));
-        final byte flags =  (byte) (((subtr >>> 7) << BIT_NEGATIVE)
-                | (subtr == 0 ? BITMASK_ZERO : 0)
+        final byte flags =  (byte) (getFlagsZN((byte) subtr)
                 | (subtr >= 0 ? BITMASK_CARRY : 0));
         applyCompareFlags(flags);
-        incrementPC();
-        resetCycleInOp();
+        nextOp();
     }
 
     private void applyCompareFlags(byte flags) {
-        applyFlags(BITMASK_CMP, flags);
+        applyFlags(BITMASK_ZNC, flags);
     }
 
     private void applyFlags(byte bitmask, byte flags) {
