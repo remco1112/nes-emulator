@@ -143,6 +143,7 @@ public class CPU2A03Test {
                 try {
                     runTest(testCase);
                 } catch (AssertionFailedError e) {
+                    print("Test failed", current, total, test.opCode.name());
                     System.out.println();
                     System.out.println("Failed test: " + testCase.name);
                     e.printStackTrace(System.out);
@@ -151,6 +152,7 @@ public class CPU2A03Test {
                 current++;
             }
         }
+        print("Completed successfully", current, total, "");
     }
 
     private static void print(String phase, int current, int total, String currentOperation) {
@@ -170,7 +172,7 @@ public class CPU2A03Test {
         stringBuilder.append("Current operation: ");
         stringBuilder.append(currentOperation);
         stringBuilder.append('\n');
-        final int percentage = (int) Math.round(((double) current / (double) total) * 100.0);
+        final int percentage = (int) (((double) current / (double) total) * 100.0);
         stringBuilder.append(percentage);
         stringBuilder.append("% ");
         final int percentChars = percentage / 2;
