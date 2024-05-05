@@ -195,6 +195,7 @@ public class CPU2A03 {
             case DEC -> handleDEC();
             case DEX -> handleDEX();
             case DEY -> handleDEY();
+            case EOR -> handleEOR();
             default -> {
                 nextOp();
             }
@@ -381,6 +382,13 @@ public class CPU2A03 {
         fetchOperand0();
         regY = (byte) (toUint(regY) - 1);
         applyFlagsZN(regY);
+        nextOp();
+    }
+
+    private void handleEOR() {
+        byte operand = memoryMap.get(operandAddress);
+        regA = (byte) (toUint(regA) ^ toUint(operand));
+        applyFlagsZN(regA);
         nextOp();
     }
 
