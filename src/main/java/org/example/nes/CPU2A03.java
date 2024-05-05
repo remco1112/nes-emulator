@@ -188,6 +188,7 @@ public class CPU2A03 {
             case CLC -> handleCLC();
             case CLD -> handleCLD();
             case CLI -> handleCLI();
+            case CLV -> handleCLV();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
@@ -341,6 +342,10 @@ public class CPU2A03 {
 
     private void handleCLI() {
         handleClear(BITMASK_INT_DISABLE);
+    }
+
+    private void handleCLV() {
+        handleClear(BITMASK_OVERFLOW);
     }
 
     private void handleClear(byte bitmask) {
