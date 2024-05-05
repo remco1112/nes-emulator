@@ -189,9 +189,10 @@ public class CPU2A03 {
             case CLD -> handleCLD();
             case CLI -> handleCLI();
             case CLV -> handleCLV();
+            case CMP -> handleCMP();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
-            case CMP -> handleCMP();
+            case DEC -> handleDEC();
             default -> {
                 nextOp();
             }
@@ -225,7 +226,7 @@ public class CPU2A03 {
 
     private void handleAND() {
         regA = (byte) (toUint(regA) & toUint(memoryMap.get(operandAddress)));
-        applyFlags(BITMASK_ZN, getFlagsZN(regA));
+        applyFlagsZN(regA);
         nextOp();
     }
 
@@ -354,6 +355,19 @@ public class CPU2A03 {
         nextOp();
     }
 
+    private void handleDEC() {
+        switch (getCycleInOperation()) {
+            case 0 -> op0 = memoryMap.get(operandAddress);
+            case 1 -> memoryMap.set(operandAddress, op0);
+            case 2 -> {
+                final byte dec = (byte) (toUint(op0) - 1);
+                memoryMap.set(operandAddress, dec);
+                applyFlagsZN(dec);
+                nextOp();
+            }
+        }
+    }
+
     private void push(byte value) {
         memoryMap.set(getStackAddress(), value);
         regSP = (byte) (toUint(regSP) - 1);
@@ -379,6 +393,10 @@ public class CPU2A03 {
     private byte getFlagsZNC(int res) {
         return (byte) (getFlagsZN((byte) res)
                 | (res > 0xff ? BITMASK_CARRY : 0));
+    }
+
+    private void applyFlagsZN(byte res) {
+        applyFlags(BITMASK_ZN, getFlagsZN(res));
     }
 
     private byte getFlagsZN(byte res) {
