@@ -178,6 +178,7 @@ public class CPU2A03 {
             case BIT -> handleBIT();
             case BMI -> handleBMI();
             case BNE -> handleBNE();
+            case BPL -> handleBPL();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
@@ -257,6 +258,10 @@ public class CPU2A03 {
 
     private void handleBNE() {
         handleBranch(BITMASK_ZERO, false);
+    }
+
+    private void handleBPL() {
+        handleBranch(BITMASK_NEGATIVE, false);
     }
 
     private void handleBranch(byte flagBitmask, boolean flagSet) {
