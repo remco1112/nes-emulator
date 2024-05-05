@@ -194,6 +194,7 @@ public class CPU2A03 {
             case CPY -> handleCPY();
             case DEC -> handleDEC();
             case DEX -> handleDEX();
+            case DEY -> handleDEY();
             default -> {
                 nextOp();
             }
@@ -373,6 +374,13 @@ public class CPU2A03 {
         fetchOperand0();
         regX = (byte) (toUint(regX) - 1);
         applyFlagsZN(regX);
+        nextOp();
+    }
+
+    private void handleDEY() {
+        fetchOperand0();
+        regY = (byte) (toUint(regY) - 1);
+        applyFlagsZN(regY);
         nextOp();
     }
 
