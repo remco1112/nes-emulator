@@ -171,6 +171,7 @@ public class CPU2A03 {
             case AND -> handleAND();
             case ASL -> handleASL();
             case BCC -> handleBCC();
+            case BCS -> handleBCS();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
@@ -232,11 +233,19 @@ public class CPU2A03 {
         }
     }
 
+    private void handleBCS() {
+        handleBranch(BITMASK_CARRY, true);
+    }
+
     private void handleBCC() {
+        handleBranch(BITMASK_CARRY, false);
+    }
+
+    private void handleBranch(byte flagBitmask, boolean flagSet) {
         switch (getCycleInOperation()) {
             case 0 -> {
                 fetchOperand0();
-                if (isCarrySet()) {
+                if (isFlagSet(flagBitmask) != flagSet) {
                     nextOp();
                 }
             }
@@ -265,7 +274,11 @@ public class CPU2A03 {
     }
 
     private boolean isCarrySet() {
-        return (regP & BITMASK_CARRY) == BITMASK_CARRY;
+        return isFlagSet(BITMASK_CARRY);
+    }
+
+    private boolean isFlagSet(byte flagBitmask) {
+        return (regP & flagBitmask) == flagBitmask;
     }
 
     private byte getFlagsZN(byte res) {
