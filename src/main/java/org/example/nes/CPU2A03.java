@@ -185,6 +185,7 @@ public class CPU2A03 {
             case BRK -> handleBRK();
             case BVC -> handleBVC();
             case BVS -> handleBVS();
+            case CLC -> handleCLC();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
@@ -326,6 +327,12 @@ public class CPU2A03 {
                 resetCycleInOp();
             }
         }
+    }
+
+    private void handleCLC() {
+        fetchOperand0();
+        applyFlags(BITMASK_CARRY, (byte) 0);
+        nextOp();
     }
 
     private void push(byte value) {
