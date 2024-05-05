@@ -1,22 +1,25 @@
 package org.example.nes;
 
 public class CPU2A03 {
-    private static final byte IRQ_ADDR = (byte) 0xfffe;
-    private static final byte RST_ADDR = (byte) 0xfffc;
-    private static final byte NMI_ADDR = (byte) 0xfffa;
+    private static final short IRQ_LO_ADDR = (short) 0xfffe;
+    private static final short IRQ_HI_ADDR = (short) 0xffff;
+    private static final short RST_ADDR = (short) 0xfffc;
+    private static final short NMI_ADDR = (short) 0xfffa;
 
     private static final byte STACK_BASE = (byte) 0xff;
 
-    private static final byte BIT_NEGATIVE   = 7;
-    private static final byte BIT_OVERFLOW   = 6;
-    private static final byte BIT_DECIMAL    = 3;
+    private static final byte BIT_NEGATIVE    = 7;
+    private static final byte BIT_OVERFLOW    = 6;
+    private static final byte BIT_DECIMAL     = 3;
+    private static final byte BIT_BREAK       = 4;
     private static final byte BIT_INT_DISABLE = 2;
     private static final byte BIT_ZERO        = 1;
     private static final byte BIT_CARRY       = 0;
 
-    private static final byte BITMASK_NEGATIVE   = (byte) (1 << BIT_NEGATIVE);
-    private static final byte BITMASK_OVERFLOW   = (byte) (1 << BIT_OVERFLOW);
-    private static final byte BITMASK_DECIMAL    = (byte) (1 << BIT_DECIMAL);
+    private static final byte BITMASK_NEGATIVE    = (byte) (1 << BIT_NEGATIVE);
+    private static final byte BITMASK_OVERFLOW    = (byte) (1 << BIT_OVERFLOW);
+    private static final byte BITMASK_DECIMAL     = (byte) (1 << BIT_DECIMAL);
+    private static final byte BITMASK_BREAK       = (byte) (1 << BIT_BREAK);
     private static final byte BITMASK_INT_DISABLE = (byte) (1 << BIT_INT_DISABLE);
     private static final byte BITMASK_ZERO        = (byte) (1 << BIT_ZERO);
     private static final byte BITMASK_CARRY       = (byte) (1 << BIT_CARRY);
@@ -179,6 +182,7 @@ public class CPU2A03 {
             case BMI -> handleBMI();
             case BNE -> handleBNE();
             case BPL -> handleBPL();
+            case BRK -> handleBRK();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
@@ -274,7 +278,7 @@ public class CPU2A03 {
             }
             case 1 -> {
                 fetchOperand1();
-                final short normalNewAddress = (short) (toUint(regPC) + currentOp.addressMode.instructionSize);
+                final short normalNewAddress = getNextPC();
                 final short branchNewAddress = (short) (toUint(normalNewAddress) + op0);
                 if (samePage(normalNewAddress, branchNewAddress)) {
                     regPC = branchNewAddress;
@@ -282,7 +286,7 @@ public class CPU2A03 {
                 }
             }
             case 2 -> {
-                final short normalNewAddress = (short) (toUint(regPC) + currentOp.addressMode.instructionSize);
+                final short normalNewAddress = getNextPC();
                 final short branchNewAddress = (short) (toUint(normalNewAddress) + op0);
                 memoryMap.get((short) ((toUint(branchNewAddress) % 0x100) | (getPage(normalNewAddress) << 8)));
                 regPC = branchNewAddress;
@@ -297,6 +301,30 @@ public class CPU2A03 {
                 | (toUint(operand) & BITMASK_NO));
         applyFlags(BITMASK_ZNO, flags);
         nextOp();
+    }
+
+    private void handleBRK() {
+        switch (getCycleInOperation()) {
+            case 0 -> fetchOperand0();
+            case 1 -> push((byte) ((toUint(regPC) + 2) >>> 8));
+            case 2 -> push((byte) ((toUint(regPC) + 2) & 0xff));
+            case 3 -> push((byte) (toUint(regP) | BITMASK_BREAK));
+            case 4 -> regPC = (short) toUint(memoryMap.get(IRQ_LO_ADDR));
+            case 5 -> {
+                regPC = (short) (toUint(regPC) | (toUint(memoryMap.get(IRQ_HI_ADDR)) << 8));
+                applyFlags(BITMASK_INT_DISABLE, BITMASK_INT_DISABLE);
+                resetCycleInOp();
+            }
+        }
+    }
+
+    private void push(byte value) {
+        memoryMap.set(getStackAddress(), value);
+        regSP = (byte) (toUint(regSP) - 1);
+    }
+
+    private short getStackAddress() {
+        return (short) (toUint(regSP) | 0x100);
     }
 
     private void nextOp() {
@@ -409,7 +437,11 @@ public class CPU2A03 {
     }
 
     private void incrementPC() {
-        regPC += (short) currentOp.addressMode.instructionSize;
+        regPC = getNextPC();
+    }
+
+    private short getNextPC() {
+        return (short) (toUint(regPC) + currentOp.addressMode.instructionSize);
     }
 
     public short getRegPC() {
