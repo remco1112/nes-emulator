@@ -26,9 +26,9 @@ public class CPU2A03 {
 
     private static final byte BITMASK_ZN = BITMASK_ZERO | BITMASK_NEGATIVE;
     private static final byte BITMASK_ZNC = BITMASK_ZN | BITMASK_CARRY;
-    private static final byte BITMASK_ZNCO = BITMASK_ZNC | BITMASK_OVERFLOW;
-    private static final byte BITMASK_NO = BITMASK_NEGATIVE | BITMASK_OVERFLOW;
-    private static final byte BITMASK_ZNO = BITMASK_ZERO | BITMASK_NO;
+    private static final byte BITMASK_ZNCV = BITMASK_ZNC | BITMASK_OVERFLOW;
+    private static final byte BITMASK_NV = BITMASK_NEGATIVE | BITMASK_OVERFLOW;
+    private static final byte BITMASK_ZNV = BITMASK_ZERO | BITMASK_NV;
 
     private short regPC;
     private byte regSP;
@@ -184,6 +184,7 @@ public class CPU2A03 {
             case BPL -> handleBPL();
             case BRK -> handleBRK();
             case BVC -> handleBVC();
+            case BVS -> handleBVS();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
@@ -214,7 +215,7 @@ public class CPU2A03 {
                 | ((toUint(regA) >>> 7 == operand >>> 7) && (operand >>> 7 != toUint((byte) res) >>> 7) ? BITMASK_OVERFLOW : 0)
         );
         regA = (byte) res;
-        applyFlags(BITMASK_ZNCO, flags);
+        applyFlags(BITMASK_ZNCV, flags);
         nextOp();
     }
 
@@ -273,6 +274,10 @@ public class CPU2A03 {
         handleBranch(BITMASK_OVERFLOW, false);
     }
 
+    private void handleBVS() {
+        handleBranch(BITMASK_OVERFLOW, true);
+    }
+
     private void handleBranch(byte flagBitmask, boolean flagSet) {
         switch (getCycleInOperation()) {
             case 0 -> {
@@ -303,8 +308,8 @@ public class CPU2A03 {
     private void handleBIT() {
         final byte operand = memoryMap.get(operandAddress);
         final byte flags = (byte) (getFlagsZ((byte) (toUint(operand) & toUint(regA)))
-                | (toUint(operand) & BITMASK_NO));
-        applyFlags(BITMASK_ZNO, flags);
+                | (toUint(operand) & BITMASK_NV));
+        applyFlags(BITMASK_ZNV, flags);
         nextOp();
     }
 
