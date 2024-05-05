@@ -170,6 +170,7 @@ public class CPU2A03 {
             case ADC -> handleADC();
             case AND -> handleAND();
             case ASL -> handleASL();
+            case BCC -> handleBCC();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
@@ -194,9 +195,8 @@ public class CPU2A03 {
     }
 
     private void handleADC() {
-        final boolean carry = getCarry();
         final int operand = toUint(memoryMap.get(operandAddress));
-        int res = toUint(regA) + operand + (carry ? 1 : 0);
+        int res = toUint(regA) + operand + (isCarrySet() ? 1 : 0);
         final byte flags =  (byte) (getFlagsZNC(res)
                 | ((toUint(regA) >>> 7 == operand >>> 7) && (operand >>> 7 != toUint((byte) res) >>> 7) ? BITMASK_OVERFLOW : 0)
         );
@@ -232,12 +232,39 @@ public class CPU2A03 {
         }
     }
 
+    private void handleBCC() {
+        switch (getCycleInOperation()) {
+            case 0 -> {
+                fetchOperand0();
+                if (isCarrySet()) {
+                    nextOp();
+                }
+            }
+            case 1 -> {
+                fetchOperand1();
+                final short normalNewAddress = (short) (toUint(regPC) + currentOp.addressMode.instructionSize);
+                final short branchNewAddress = (short) (toUint(normalNewAddress) + op0);
+                if (samePage(normalNewAddress, branchNewAddress)) {
+                    regPC = branchNewAddress;
+                    resetCycleInOp();
+                }
+            }
+            case 2 -> {
+                final short normalNewAddress = (short) (toUint(regPC) + currentOp.addressMode.instructionSize);
+                final short branchNewAddress = (short) (toUint(normalNewAddress) + op0);
+                memoryMap.get((short) ((toUint(branchNewAddress) % 0x100) | (getPage(normalNewAddress) << 8)));
+                regPC = branchNewAddress;
+                resetCycleInOp();
+            }
+        }
+    }
+
     private void nextOp() {
         incrementPC();
         resetCycleInOp();
     }
 
-    private boolean getCarry() {
+    private boolean isCarrySet() {
         return (regP & BITMASK_CARRY) == BITMASK_CARRY;
     }
 
@@ -267,21 +294,21 @@ public class CPU2A03 {
         return (short) (toUint(address) - 0x100);
     }
 
-    private short getAddressFromOperands() {
-        return getAddressFromOperandsAndOffsetWithoutCarry((byte) 0);
+    private boolean addressInPage(short address) {
+        return getPage(address) == op1;
     }
 
-    private boolean addressInPage(short address) {
-        return ((byte) (toUint(address) >>> 8)) == op1;
+    private boolean samePage(short address1, short address2) {
+        return getPage(address1) == getPage(address2);
+    }
+
+    private byte getPage(short address) {
+        return ((byte) (toUint(address) >>> 8));
     }
 
     private short getAddressFromOperandsAndOffsetWithCarry(byte offset) {
         final int op0WithOffset = toUint(op0) + toUint(offset);
         return (short) (op0WithOffset + (toUint(op1) << 8));
-    }
-
-    private short getAddressFromOperandsAndOffsetWithoutCarry(byte offset) {
-        return getAddressFromOperandsAndOffsetWithoutCarry(offset, op1);
     }
 
     private short getZeroPageAddress() {
