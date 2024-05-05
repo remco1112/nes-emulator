@@ -196,6 +196,9 @@ public class CPU2A03 {
             case DEX -> handleDEX();
             case DEY -> handleDEY();
             case EOR -> handleEOR();
+            case INC -> handleINC();
+            case INX -> handleINX();
+            case INY -> handleINY();
             default -> {
                 nextOp();
             }
@@ -389,6 +392,33 @@ public class CPU2A03 {
         byte operand = memoryMap.get(operandAddress);
         regA = (byte) (toUint(regA) ^ toUint(operand));
         applyFlagsZN(regA);
+        nextOp();
+    }
+
+    private void handleINC() {
+        switch (getCycleInOperation()) {
+            case 0 -> op0 = memoryMap.get(operandAddress);
+            case 1 -> memoryMap.set(operandAddress, op0);
+            case 2 -> {
+                final byte inc = (byte) (toUint(op0) + 1);
+                memoryMap.set(operandAddress, inc);
+                applyFlagsZN(inc);
+                nextOp();
+            }
+        }
+    }
+
+    private void handleINX() {
+        fetchOperand0();
+        regX = (byte) (toUint(regX) + 1);
+        applyFlagsZN(regX);
+        nextOp();
+    }
+
+    private void handleINY() {
+        fetchOperand0();
+        regY = (byte) (toUint(regY) + 1);
+        applyFlagsZN(regY);
         nextOp();
     }
 
