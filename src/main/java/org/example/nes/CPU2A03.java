@@ -24,6 +24,8 @@ public class CPU2A03 {
     private static final byte BITMASK_ZN = BITMASK_ZERO | BITMASK_NEGATIVE;
     private static final byte BITMASK_ZNC = BITMASK_ZN | BITMASK_CARRY;
     private static final byte BITMASK_ZNCO = BITMASK_ZNC | BITMASK_OVERFLOW;
+    private static final byte BITMASK_NO = BITMASK_NEGATIVE | BITMASK_OVERFLOW;
+    private static final byte BITMASK_ZNO = BITMASK_ZERO | BITMASK_NO;
 
     private short regPC;
     private byte regSP;
@@ -173,6 +175,7 @@ public class CPU2A03 {
             case BCC -> handleBCC();
             case BCS -> handleBCS();
             case BEQ -> handleBEQ();
+            case BIT -> handleBIT();
             case CPX -> handleCPX();
             case CPY -> handleCPY();
             case CMP -> handleCMP();
@@ -273,6 +276,14 @@ public class CPU2A03 {
         }
     }
 
+    private void handleBIT() {
+        final byte operand = memoryMap.get(operandAddress);
+        final byte flags = (byte) (getFlagsZ((byte) (toUint(operand) & toUint(regA)))
+                | (toUint(operand) & BITMASK_NO));
+        applyFlags(BITMASK_ZNO, flags);
+        nextOp();
+    }
+
     private void nextOp() {
         incrementPC();
         resetCycleInOp();
@@ -286,14 +297,18 @@ public class CPU2A03 {
         return (regP & flagBitmask) == flagBitmask;
     }
 
-    private byte getFlagsZN(byte res) {
-        return (byte) (((res >>> 7) << BIT_NEGATIVE)
-                | (res == 0 ? BITMASK_ZERO : 0));
-    }
-
     private byte getFlagsZNC(int res) {
         return (byte) (getFlagsZN((byte) res)
                 | (res > 0xff ? BITMASK_CARRY : 0));
+    }
+
+    private byte getFlagsZN(byte res) {
+        return (byte) (getFlagsZ(res)
+                | ((res >>> 7) << BIT_NEGATIVE));
+    }
+
+    private byte getFlagsZ(byte res) {
+        return res == 0 ? BITMASK_ZERO : 0;
     }
 
     private void handleCMP() {
