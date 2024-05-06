@@ -229,6 +229,7 @@ public class CPU2A03 {
             case INY -> handleINY();
             case JMP -> handleJMP();
             case JSR -> handleJSR();
+            case LDA -> handleLDA();
             default -> {
                 nextOp();
             }
@@ -489,6 +490,12 @@ public class CPU2A03 {
                 resetCycleInOp();
             }
         }
+    }
+
+    private void handleLDA() {
+        regA = memoryMap.get(operandAddress);
+        applyFlagsZN(regA);
+        nextOp();
     }
 
     private void pushPCH() {
