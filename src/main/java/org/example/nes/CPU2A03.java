@@ -176,12 +176,12 @@ public class CPU2A03 {
             case 1 -> operandAddress = (short) toUint(memoryMap.get(getZeroPageAddress((byte) 0)));
             case 2 -> {
                 operandAddress = getAddressFromOperands((byte) operandAddress, memoryMap.get((short) (toUint(getZeroPageAddress((byte) 1)))));
-                if (samePage(operandAddress, (short) (toUint(operandAddress) + toUint(regY)))) {
+                if (samePage(operandAddress, (short) (toUint(operandAddress) + toUint(regY))) && !currentOp.operation.writesToMemory) {
                     cycleInInstruction++;
                 }
                 operandAddress = (short) (toUint(operandAddress) + toUint(regY));
             }
-            case 3 -> memoryMap.get(subtractPage(operandAddress));
+            case 3 -> memoryMap.get(samePage(operandAddress, (short) (toUint(operandAddress) - toUint(regY))) ? operandAddress : subtractPage(operandAddress));
         }
     }
 
@@ -259,6 +259,9 @@ public class CPU2A03 {
             case SEC -> handleSEC();
             case SED -> handleSED();
             case SEI -> handleSEI();
+            case STA -> handleSTA();
+            case STX -> handleSTX();
+            case STY -> handleSTY();
             default -> {
                 nextOp();
             }
@@ -704,6 +707,23 @@ public class CPU2A03 {
     private void handleSet(byte bitmask) {
         fetchOperand0();
         applyFlags(bitmask, bitmask);
+        nextOp();
+    }
+
+    private void handleSTA() {
+        handleStore(regA);
+    }
+
+    private void handleSTX() {
+        handleStore(regX);
+    }
+
+    private void handleSTY() {
+        handleStore(regY);
+    }
+
+    private void handleStore(byte reg) {
+        memoryMap.set(operandAddress, reg);
         nextOp();
     }
 
