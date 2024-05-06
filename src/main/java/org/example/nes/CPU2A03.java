@@ -253,6 +253,7 @@ public class CPU2A03 {
             case PLP -> handlePLP();
             case ROL -> handleROL();
             case ROR -> handleROR();
+            case RTI -> handleRTI();
             default -> {
                 nextOp();
             }
@@ -548,6 +549,13 @@ public class CPU2A03 {
         regY = handleLoad();
     }
 
+    private byte handleLoad() {
+        byte register = memoryMap.get(operandAddress);
+        applyFlagsZN(register);
+        nextOp();
+        return register;
+    }
+
     private void handleNOP() {
         fetchOperand0();
         nextOp();
@@ -594,7 +602,7 @@ public class CPU2A03 {
             case 0 -> fetchOperand0();
             case 1 -> memoryMap.get(getStackAddress());
             case 2 -> {
-                regP = (byte) ((pull() | BITMASK_UNUSED) & ~BITMASK_BREAK);
+                pullP();
                 nextOp();
             }
         }
@@ -642,11 +650,21 @@ public class CPU2A03 {
         }
     }
 
-    private byte handleLoad() {
-        byte register = memoryMap.get(operandAddress);
-        applyFlagsZN(register);
-        nextOp();
-        return register;
+    private void handleRTI() {
+        switch (getCycleInOperation()) {
+            case 0 -> fetchOperand0();
+            case 1 -> memoryMap.get(getStackAddress());
+            case 2 -> pullP();
+            case 3 -> regPC = pull();
+            case 4 -> {
+                regPC = getAddressFromOperands((byte) regPC, pull());
+                resetCycleInOp();
+            }
+        }
+    }
+
+    private void pullP() {
+        regP = (byte) ((pull() | BITMASK_UNUSED) & ~BITMASK_BREAK);
     }
 
     private void pushPCH() {
