@@ -262,6 +262,12 @@ public class CPU2A03 {
             case STA -> handleSTA();
             case STX -> handleSTX();
             case STY -> handleSTY();
+            case TAX -> handleTAX();
+            case TAY -> handleTAY();
+            case TSX -> handleTSX();
+            case TXA -> handleTXA();
+            case TXS -> handleTXS();
+            case TYA -> handleTYA();
             default -> {
                 nextOp();
             }
@@ -724,6 +730,47 @@ public class CPU2A03 {
 
     private void handleStore(byte reg) {
         memoryMap.set(operandAddress, reg);
+        nextOp();
+    }
+
+    private void handleTAX() {
+        fetchOperand0();
+        regX = regA;
+        applyFlagsZN(regX);
+        nextOp();
+    }
+
+    private void handleTAY() {
+        fetchOperand0();
+        regY = regA;
+        applyFlagsZN(regY);
+        nextOp();
+    }
+
+    private void handleTSX() {
+        fetchOperand0();
+        regX = regSP;
+        applyFlagsZN(regX);
+        nextOp();
+    }
+
+    private void handleTXA() {
+        fetchOperand0();
+        regA = regX;
+        applyFlagsZN(regA);
+        nextOp();
+    }
+
+    private void handleTXS() {
+        fetchOperand0();
+        regSP = regX;
+        nextOp();
+    }
+
+    private void handleTYA() {
+        fetchOperand0();
+        regA = regY;
+        applyFlagsZN(regA);
         nextOp();
     }
 
