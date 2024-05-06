@@ -255,6 +255,7 @@ public class CPU2A03 {
             case ROR -> handleROR();
             case RTI -> handleRTI();
             case RTS -> handleRTS();
+            case SBC -> handleSBC();
             default -> {
                 nextOp();
             }
@@ -276,7 +277,15 @@ public class CPU2A03 {
     }
 
     private void handleADC() {
-        final int operand = toUint(memoryMap.get(operandAddress));
+        handleAddition(memoryMap.get(operandAddress));
+    }
+
+    private void handleSBC() {
+        handleAddition((byte) ~memoryMap.get(operandAddress));
+    }
+
+    private void handleAddition(byte op) {
+        final int operand = toUint(op);
         int res = toUint(regA) + operand + (isCarrySet() ? 1 : 0);
         final byte flags =  (byte) (getFlagsZNC(res)
                 | ((toUint(regA) >>> 7 == operand >>> 7) && (operand >>> 7 != toUint((byte) res) >>> 7) ? BITMASK_OVERFLOW : 0)
