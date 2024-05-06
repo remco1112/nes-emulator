@@ -256,6 +256,9 @@ public class CPU2A03 {
             case RTI -> handleRTI();
             case RTS -> handleRTS();
             case SBC -> handleSBC();
+            case SEC -> handleSEC();
+            case SED -> handleSED();
+            case SEI -> handleSEI();
             default -> {
                 nextOp();
             }
@@ -684,6 +687,24 @@ public class CPU2A03 {
                 nextOp();
             }
         }
+    }
+
+    private void handleSEC() {
+        handleSet(BITMASK_CARRY);
+    }
+
+    private void handleSED() {
+        handleSet(BITMASK_DECIMAL);
+    }
+
+    private void handleSEI() {
+        handleSet(BITMASK_INT_DISABLE);
+    }
+
+    private void handleSet(byte bitmask) {
+        fetchOperand0();
+        applyFlags(bitmask, bitmask);
+        nextOp();
     }
 
     private void pullP() {
