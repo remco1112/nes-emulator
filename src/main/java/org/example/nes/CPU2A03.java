@@ -254,6 +254,7 @@ public class CPU2A03 {
             case ROL -> handleROL();
             case ROR -> handleROR();
             case RTI -> handleRTI();
+            case RTS -> handleRTS();
             default -> {
                 nextOp();
             }
@@ -659,6 +660,19 @@ public class CPU2A03 {
             case 4 -> {
                 regPC = getAddressFromOperands((byte) regPC, pull());
                 resetCycleInOp();
+            }
+        }
+    }
+
+    private void handleRTS() {
+        switch (getCycleInOperation()) {
+            case 0 -> fetchOperand0();
+            case 1 -> memoryMap.get(getStackAddress());
+            case 2 -> regPC = pull();
+            case 3 -> regPC = getAddressFromOperands((byte) regPC, pull());
+            case 4 -> {
+                memoryMap.get(regPC);
+                nextOp();
             }
         }
     }
