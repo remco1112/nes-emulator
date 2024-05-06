@@ -241,6 +241,7 @@ public class CPU2A03 {
             case LDA -> handleLDA();
             case LDX -> handleLDX();
             case LDY -> handleLDY();
+            case LSR -> handleLSR();
             default -> {
                 nextOp();
             }
@@ -294,6 +295,27 @@ public class CPU2A03 {
                 final int res = toUint(op0) << 1;
                 memoryMap.set(operandAddress, (byte) res);
                 applyFlagsZNC(res);
+                nextOp();
+            }
+        }
+    }
+
+    private void handleLSR() {
+        switch (getCycleInOperation()) {
+            case 0 -> {
+                op0 = memoryMap.get(operandAddress);
+                if (currentOp.addressMode == AddressMode.ACCUMULATOR) {
+                    final byte res = (byte) (toUint(regA) >>> 1);
+                    applyFlags(BITMASK_ZNC, (byte) (toUint(getFlagsZN(res)) | ((toUint(regA) & 1) << BIT_CARRY)));
+                    regA = res;
+                    nextOp();
+                }
+            }
+            case 1 -> memoryMap.set(operandAddress, op0);
+            case 2 -> {
+                final byte res = (byte) (toUint(op0) >>> 1);
+                memoryMap.set(operandAddress, res);
+                applyFlags(BITMASK_ZNC, (byte) (toUint(getFlagsZN(res)) | ((toUint(op0) & 1) << BIT_CARRY)));
                 nextOp();
             }
         }
