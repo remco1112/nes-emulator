@@ -10,16 +10,18 @@ public class CPU2A03 {
 
     private static final byte BIT_NEGATIVE    = 7;
     private static final byte BIT_OVERFLOW    = 6;
-    private static final byte BIT_DECIMAL     = 3;
+    private static final byte BIT_UNUSED      = 5;
     private static final byte BIT_BREAK       = 4;
+    private static final byte BIT_DECIMAL     = 3;
     private static final byte BIT_INT_DISABLE = 2;
     private static final byte BIT_ZERO        = 1;
     private static final byte BIT_CARRY       = 0;
 
     private static final byte BITMASK_NEGATIVE    = (byte) (1 << BIT_NEGATIVE);
     private static final byte BITMASK_OVERFLOW    = (byte) (1 << BIT_OVERFLOW);
-    private static final byte BITMASK_DECIMAL     = (byte) (1 << BIT_DECIMAL);
+    private static final byte BITMASK_UNUSED      = (byte) (1 << BIT_UNUSED);
     private static final byte BITMASK_BREAK       = (byte) (1 << BIT_BREAK);
+    private static final byte BITMASK_DECIMAL     = (byte) (1 << BIT_DECIMAL);
     private static final byte BITMASK_INT_DISABLE = (byte) (1 << BIT_INT_DISABLE);
     private static final byte BITMASK_ZERO        = (byte) (1 << BIT_ZERO);
     private static final byte BITMASK_CARRY       = (byte) (1 << BIT_CARRY);
@@ -245,6 +247,7 @@ public class CPU2A03 {
             case NOP -> handleNOP();
             case ORA -> handleORA();
             case PHA -> handlePHA();
+            case PHP -> handlePHP();
             default -> {
                 nextOp();
             }
@@ -552,10 +555,18 @@ public class CPU2A03 {
     }
 
     private void handlePHA() {
+        handlePush(regA);
+    }
+
+    private void handlePHP() {
+        handlePush((byte) (toUint(regP) | BITMASK_BREAK | BITMASK_UNUSED));
+    }
+
+    private void handlePush(byte value) {
         switch (getCycleInOperation()) {
             case 0 -> fetchOperand0();
             case 1 -> {
-                push(regA);
+                push(value);
                 nextOp();
             }
         }
