@@ -243,6 +243,7 @@ public class CPU2A03 {
             case LDY -> handleLDY();
             case LSR -> handleLSR();
             case NOP -> handleNOP();
+            case ORA -> handleORA();
             default -> {
                 nextOp();
             }
@@ -540,6 +541,12 @@ public class CPU2A03 {
 
     private void handleNOP() {
         fetchOperand0();
+        nextOp();
+    }
+
+    private void handleORA() {
+        regA = (byte) (toUint(regA) | toUint(memoryMap.get(operandAddress)));
+        applyFlagsZN(regA);
         nextOp();
     }
 
