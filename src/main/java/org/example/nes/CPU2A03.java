@@ -242,6 +242,7 @@ public class CPU2A03 {
             case LDX -> handleLDX();
             case LDY -> handleLDY();
             case LSR -> handleLSR();
+            case NOP -> handleNOP();
             default -> {
                 nextOp();
             }
@@ -535,6 +536,11 @@ public class CPU2A03 {
 
     private void handleLDY() {
         regY = handleLoad();
+    }
+
+    private void handleNOP() {
+        fetchOperand0();
+        nextOp();
     }
 
     private byte handleLoad() {
