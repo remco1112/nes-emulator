@@ -109,6 +109,11 @@ public class CPU2A03 {
         switch (getCycleInAddressing()) {
             case 0 -> fetchOperand0();
             case 1 -> {
+                if (currentOp.operation == Operation.JSR) { // Hack: JSR uses absolute addressing but different cycles
+                    memoryMap.get(getStackAddress());
+                    cycleInInstruction++;
+                    return;
+                }
                 fetchOperand1();
                 operandAddress = getAddressFromOperandsAndOffsetWithCarry(offset);
                 if (currentOp.operation == Operation.JMP) { // Hack: Handling jump during addressing since JMP has no operation cycles
@@ -223,6 +228,7 @@ public class CPU2A03 {
             case INX -> handleINX();
             case INY -> handleINY();
             case JMP -> handleJMP();
+            case JSR -> handleJSR();
             default -> {
                 nextOp();
             }
@@ -355,8 +361,8 @@ public class CPU2A03 {
     private void handleBRK() {
         switch (getCycleInOperation()) {
             case 0 -> fetchOperand0();
-            case 1 -> push(getPage((short) (toUint(regPC) + 2)));
-            case 2 -> push((byte) ((toUint(regPC) + 2)));
+            case 1 -> pushPCH();
+            case 2 -> pushPCL();
             case 3 -> push((byte) (toUint(regP) | BITMASK_BREAK));
             case 4 -> regPC = (short) toUint(memoryMap.get(IRQ_LO_ADDR));
             case 5 -> {
@@ -471,6 +477,26 @@ public class CPU2A03 {
 
     private void handleJMP() {
         throw new IllegalStateException("JMP should have been handled during addressing");
+    }
+
+    private void handleJSR() {
+        switch (getCycleInOperation()) {
+            case 0 -> pushPCH();
+            case 1 -> pushPCL();
+            case 2 -> {
+                fetchOperand1();
+                regPC = getAddressFromOperands();
+                resetCycleInOp();
+            }
+        }
+    }
+
+    private void pushPCH() {
+        push(getPage((short) (toUint(regPC) + 2)));
+    }
+
+    private void pushPCL() {
+        push((byte) ((toUint(regPC) + 2)));
     }
 
     private void push(byte value) {
