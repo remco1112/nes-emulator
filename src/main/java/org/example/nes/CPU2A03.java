@@ -240,6 +240,7 @@ public class CPU2A03 {
             case JSR -> handleJSR();
             case LDA -> handleLDA();
             case LDX -> handleLDX();
+            case LDY -> handleLDY();
             default -> {
                 nextOp();
             }
@@ -508,6 +509,10 @@ public class CPU2A03 {
 
     private void handleLDX() {
         regX = handleLoad();
+    }
+
+    private void handleLDY() {
+        regY = handleLoad();
     }
 
     private byte handleLoad() {
