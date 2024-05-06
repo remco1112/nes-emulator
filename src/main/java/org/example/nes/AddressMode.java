@@ -7,7 +7,7 @@ public enum AddressMode {
     ABSOLUTE_Y_INDEXED(3, 3, "ABY"),
     IMMEDIATE(0, 2, "IMM"),
     IMPLIED(0, 1, "IMP"),
-    INDIRECT(0, 3, "IND"),
+    INDIRECT(4, 3, "IND"),
     X_INDEXED_INDIRECT(4, 2, "XIN"),
     INDIRECT_Y_INDEXED(4, 2, "INY"),
     RELATIVE(0, 2, "REL"),

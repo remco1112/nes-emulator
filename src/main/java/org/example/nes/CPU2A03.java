@@ -88,6 +88,7 @@ public class CPU2A03 {
             case INDIRECT_Y_INDEXED -> handleAddressingIndirectYIndexed();
             case ZEROPAGE -> handleAddressingZeroPage();
             case ZEROPAGE_X_INDEXED -> handleAddressingZeroPageXIndexed();
+            case INDIRECT -> handleAddressingIndirect();
             default -> throw new UnsupportedOperationException("Not yet implemented");
         }
     }
@@ -110,6 +111,11 @@ public class CPU2A03 {
             case 1 -> {
                 fetchOperand1();
                 operandAddress = getAddressFromOperandsAndOffsetWithCarry(offset);
+                if (currentOp.operation == Operation.JMP) { // Hack: Handling jump during addressing since JMP has no operation cycles
+                    regPC = operandAddress;
+                    resetCycleInOp();
+                    return;
+                }
                 if (shouldSkipCycleAbsolute()) {
                     cycleInInstruction++;
                 }
@@ -162,6 +168,23 @@ public class CPU2A03 {
         }
     }
 
+    private void handleAddressingIndirect() { // Hack: immediately handles JMP operation since JMP has no op cycles
+        switch (getCycleInAddressing()) {
+            case 0 -> fetchOperand0();
+            case 1 -> {
+                fetchOperand1();
+                operandAddress = getAddressFromOperandsAndOffsetWithCarry((byte) 0);
+            }
+            case 2 -> op0 = memoryMap.get(operandAddress);
+            case 3 -> {
+                op1 = memoryMap.get(getAddressFromAddressAndOffsetWithoutCarry((byte) 1, operandAddress));
+                regPC = getAddressFromOperands();
+                resetCycleInOp();
+            }
+        }
+    }
+
+
     private int getCycleInAddressing() {
         return cycleInInstruction - 1;
     }
@@ -199,6 +222,7 @@ public class CPU2A03 {
             case INC -> handleINC();
             case INX -> handleINX();
             case INY -> handleINY();
+            case JMP -> handleJMP();
             default -> {
                 nextOp();
             }
@@ -422,6 +446,10 @@ public class CPU2A03 {
         nextOp();
     }
 
+    private void handleJMP() {
+        throw new IllegalStateException("JMP should have been handled during addressing");
+    }
+
     private void push(byte value) {
         memoryMap.set(getStackAddress(), value);
         regSP = (byte) (toUint(regSP) - 1);
@@ -500,11 +528,19 @@ public class CPU2A03 {
     }
 
     private short getZeroPageAddress(byte offset) {
-        return getAddressFromOperandsAndOffsetWithoutCarry(offset, (byte) 0);
+        return getAddressFromOperandsAndOffsetWithoutCarry(offset, op0, (byte) 0);
     }
 
-    private short getAddressFromOperandsAndOffsetWithoutCarry(byte offset, byte operand1) {
-        final int op0WithOffset = toUint(op0) + toUint(offset);
+    private short getAddressFromAddressAndOffsetWithoutCarry(byte offset, short address) {
+        return getAddressFromOperandsAndOffsetWithoutCarry(offset, (byte) (toUint(address) % 0x100), (byte) (toUint(address) >> 8));
+    }
+
+    private short getAddressFromOperands() {
+        return getAddressFromOperandsAndOffsetWithoutCarry((byte) 0, op0, op1);
+    }
+
+    private short getAddressFromOperandsAndOffsetWithoutCarry(byte offset, byte operand0, byte operand1) {
+        final int op0WithOffset = toUint(operand0) + toUint(offset);
         return (short) ((op0WithOffset % 0x100) | (toUint(operand1) << 8));
     }
 
