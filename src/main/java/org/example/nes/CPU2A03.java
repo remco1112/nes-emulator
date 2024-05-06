@@ -248,6 +248,7 @@ public class CPU2A03 {
             case ORA -> handleORA();
             case PHA -> handlePHA();
             case PHP -> handlePHP();
+            case PLA -> handlePLA();
             default -> {
                 nextOp();
             }
@@ -572,6 +573,18 @@ public class CPU2A03 {
         }
     }
 
+    private void handlePLA() {
+        switch (getCycleInOperation()) {
+            case 0 -> fetchOperand0();
+            case 1 -> memoryMap.get(getStackAddress());
+            case 2 -> {
+                regA = pull();
+                applyFlagsZN(regA);
+                nextOp();
+            }
+        }
+    }
+
     private byte handleLoad() {
         byte register = memoryMap.get(operandAddress);
         applyFlagsZN(register);
@@ -590,6 +603,11 @@ public class CPU2A03 {
     private void push(byte value) {
         memoryMap.set(getStackAddress(), value);
         regSP = (byte) (toUint(regSP) - 1);
+    }
+
+    private byte pull() {
+        regSP = (byte) (toUint(regSP) + 1);
+        return memoryMap.get(getStackAddress());
     }
 
     private short getStackAddress() {
