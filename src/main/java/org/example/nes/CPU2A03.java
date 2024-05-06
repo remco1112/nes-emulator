@@ -251,6 +251,7 @@ public class CPU2A03 {
             case PHP -> handlePHP();
             case PLA -> handlePLA();
             case PLP -> handlePLP();
+            case ROL -> handleROL();
             default -> {
                 nextOp();
             }
@@ -593,6 +594,27 @@ public class CPU2A03 {
             case 1 -> memoryMap.get(getStackAddress());
             case 2 -> {
                 regP = (byte) ((pull() | BITMASK_UNUSED) & ~BITMASK_BREAK);
+                nextOp();
+            }
+        }
+    }
+
+    private void handleROL() {
+        switch (getCycleInOperation()) {
+            case 0 -> {
+                op0 = memoryMap.get(operandAddress);
+                if (currentOp.addressMode == AddressMode.ACCUMULATOR) {
+                    final int res = (toUint(regA) << 1) | (isCarrySet() ? 1 : 0);
+                    applyFlagsZNC(res);
+                    regA = (byte) res;
+                    nextOp();
+                }
+            }
+            case 1 -> memoryMap.set(operandAddress, op0);
+            case 2 -> {
+                final int res = (toUint(op0) << 1) |  (isCarrySet() ? 1 : 0);
+                memoryMap.set(operandAddress, (byte) res);
+                applyFlagsZNC(res);
                 nextOp();
             }
         }
