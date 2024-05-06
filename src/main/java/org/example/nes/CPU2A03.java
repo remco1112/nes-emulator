@@ -61,6 +61,17 @@ public class CPU2A03 {
                 (byte) 0);
     }
 
+    CPU2A03(MemoryMap memoryMap, short regPC) {
+        this(
+                memoryMap,
+                regPC,
+                STACK_BASE,
+                (byte) 0,
+                (byte) 0,
+                (byte) 0,
+                (byte) 0);
+    }
+
     CPU2A03(MemoryMap memoryMap, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP) {
         this.memoryMap = memoryMap;
         this.regPC = regPC;

@@ -19,7 +19,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class CPU2A03Test {
+public class CPU2A03InstructionTest {
 
     private static final String TEST_CASE_TEMP_DIR = "nes6502";
     private static final String TEST_CASE_BASE_URL = "https://raw.githubusercontent.com/TomHarte/ProcessorTests/main/nes6502/v1/";
