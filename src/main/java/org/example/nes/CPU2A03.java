@@ -31,6 +31,7 @@ public class CPU2A03 {
     private static final byte BITMASK_ZNCV = BITMASK_ZNC | BITMASK_OVERFLOW;
     private static final byte BITMASK_NV = BITMASK_NEGATIVE | BITMASK_OVERFLOW;
     private static final byte BITMASK_ZNV = BITMASK_ZERO | BITMASK_NV;
+    private static final byte BITMASK_BU = BITMASK_BREAK | BITMASK_UNUSED;
 
     private short regPC;
     private byte regSP;
@@ -249,6 +250,7 @@ public class CPU2A03 {
             case PHA -> handlePHA();
             case PHP -> handlePHP();
             case PLA -> handlePLA();
+            case PLP -> handlePLP();
             default -> {
                 nextOp();
             }
@@ -560,7 +562,7 @@ public class CPU2A03 {
     }
 
     private void handlePHP() {
-        handlePush((byte) (toUint(regP) | BITMASK_BREAK | BITMASK_UNUSED));
+        handlePush((byte) (toUint(regP) | BITMASK_BU));
     }
 
     private void handlePush(byte value) {
@@ -580,6 +582,17 @@ public class CPU2A03 {
             case 2 -> {
                 regA = pull();
                 applyFlagsZN(regA);
+                nextOp();
+            }
+        }
+    }
+
+    private void handlePLP() {
+        switch (getCycleInOperation()) {
+            case 0 -> fetchOperand0();
+            case 1 -> memoryMap.get(getStackAddress());
+            case 2 -> {
+                regP = (byte) ((pull() | BITMASK_UNUSED) & ~BITMASK_BREAK);
                 nextOp();
             }
         }
