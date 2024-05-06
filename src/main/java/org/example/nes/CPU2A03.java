@@ -252,6 +252,7 @@ public class CPU2A03 {
             case PLA -> handlePLA();
             case PLP -> handlePLP();
             case ROL -> handleROL();
+            case ROR -> handleROR();
             default -> {
                 nextOp();
             }
@@ -615,6 +616,27 @@ public class CPU2A03 {
                 final int res = (toUint(op0) << 1) |  (isCarrySet() ? 1 : 0);
                 memoryMap.set(operandAddress, (byte) res);
                 applyFlagsZNC(res);
+                nextOp();
+            }
+        }
+    }
+
+    private void handleROR() {
+        switch (getCycleInOperation()) {
+            case 0 -> {
+                op0 = memoryMap.get(operandAddress);
+                if (currentOp.addressMode == AddressMode.ACCUMULATOR) {
+                    final byte res = (byte) ((toUint(regA) >>> 1) | (isCarrySet() ? 0b10000000 : 0));
+                    applyFlags(BITMASK_ZNC, (byte) (toUint(getFlagsZN(res)) | ((toUint(regA) & 1) << BIT_CARRY)));
+                    regA = res;
+                    nextOp();
+                }
+            }
+            case 1 -> memoryMap.set(operandAddress, op0);
+            case 2 -> {
+                final byte res = (byte) ((toUint(op0) >>> 1) | (isCarrySet() ? 0b10000000 : 0));
+                memoryMap.set(operandAddress, res);
+                applyFlags(BITMASK_ZNC, (byte) (toUint(getFlagsZN(res)) | ((toUint(op0) & 1) << BIT_CARRY)));
                 nextOp();
             }
         }
