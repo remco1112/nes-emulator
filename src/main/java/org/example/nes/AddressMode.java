@@ -13,7 +13,7 @@ public enum AddressMode {
     RELATIVE(0, 2, "REL"),
     ZEROPAGE(1, 2, "ZPG"),
     ZEROPAGE_X_INDEXED(2, 2, "ZPX"),
-    ZEROPAGE_Y_INDEXED(0, 2, "ZPY");
+    ZEROPAGE_Y_INDEXED(2, 2, "ZPY");
 
     final int cycles;
     final int instructionSize;

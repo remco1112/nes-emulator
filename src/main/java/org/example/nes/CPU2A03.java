@@ -88,6 +88,7 @@ public class CPU2A03 {
             case INDIRECT_Y_INDEXED -> handleAddressingIndirectYIndexed();
             case ZEROPAGE -> handleAddressingZeroPage();
             case ZEROPAGE_X_INDEXED -> handleAddressingZeroPageXIndexed();
+            case ZEROPAGE_Y_INDEXED -> handleAddressingZeroPageYIndexed();
             case INDIRECT -> handleAddressingIndirect();
             default -> throw new UnsupportedOperationException("Not yet implemented");
         }
@@ -141,11 +142,19 @@ public class CPU2A03 {
     }
 
     private void handleAddressingZeroPageXIndexed() {
+        handleAddressingZeroPageIndexed(regX);
+    }
+
+    private void handleAddressingZeroPageYIndexed() {
+        handleAddressingZeroPageIndexed(regY);
+    }
+
+    private void handleAddressingZeroPageIndexed(byte register) {
         if (getCycleInAddressing() == 0) {
             fetchOperand0();
         } else {
             memoryMap.get((short) toUint(op0));
-            operandAddress = getZeroPageAddress(regX);
+            operandAddress = getZeroPageAddress(register);
         }
     }
 
@@ -230,6 +239,7 @@ public class CPU2A03 {
             case JMP -> handleJMP();
             case JSR -> handleJSR();
             case LDA -> handleLDA();
+            case LDX -> handleLDX();
             default -> {
                 nextOp();
             }
@@ -493,9 +503,18 @@ public class CPU2A03 {
     }
 
     private void handleLDA() {
-        regA = memoryMap.get(operandAddress);
-        applyFlagsZN(regA);
+        regA = handleLoad();
+    }
+
+    private void handleLDX() {
+        regX = handleLoad();
+    }
+
+    private byte handleLoad() {
+        byte register = memoryMap.get(operandAddress);
+        applyFlagsZN(register);
         nextOp();
+        return register;
     }
 
     private void pushPCH() {
