@@ -244,6 +244,7 @@ public class CPU2A03 {
             case LSR -> handleLSR();
             case NOP -> handleNOP();
             case ORA -> handleORA();
+            case PHA -> handlePHA();
             default -> {
                 nextOp();
             }
@@ -548,6 +549,16 @@ public class CPU2A03 {
         regA = (byte) (toUint(regA) | toUint(memoryMap.get(operandAddress)));
         applyFlagsZN(regA);
         nextOp();
+    }
+
+    private void handlePHA() {
+        switch (getCycleInOperation()) {
+            case 0 -> fetchOperand0();
+            case 1 -> {
+                push(regA);
+                nextOp();
+            }
+        }
     }
 
     private byte handleLoad() {
