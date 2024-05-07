@@ -336,9 +336,6 @@ public class CPU2A03 {
             case TXA -> handleTXA();
             case TXS -> handleTXS();
             case TYA -> handleTYA();
-            default -> {
-                nextOp();
-            }
         }
     }
 
