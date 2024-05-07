@@ -23,11 +23,4 @@ public class RAMMemoryMap implements MemoryMap {
     public void set(short address, byte value) {
         ram[Short.toUnsignedInt(address)] = value;
     }
-
-    @Override
-    public byte[] asByteArray() {
-        final byte[] res = new byte[RAM_SIZE];
-        System.arraycopy(ram, 0, res, 0, RAM_SIZE);
-        return res;
-    }
 }

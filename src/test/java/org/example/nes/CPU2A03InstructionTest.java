@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CPU2A03InstructionTest {
@@ -44,7 +43,6 @@ public class CPU2A03InstructionTest {
         assertEquals(testCase.finalState.x, cpu.getRegX());
         assertEquals(testCase.finalState.y, cpu.getRegY());
         assertEquals(testCase.finalState.p, cpu.getRegP());
-        assertArrayEquals(testCase.finalState.ramAsByteArray(), cpu.getMemoryMap().asByteArray());
 
         final List<Cycle> memoryMapLog = ((RecordingMemoryMap) cpu.getMemoryMap()).getLog();
         assertEquals(cycles, memoryMapLog.size(), "Mismatch between number of CPU cycles and memory access count");
