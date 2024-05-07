@@ -32,7 +32,8 @@ public class CPU2A03InstructionTest {
                 testCase.initialState.a,
                 testCase.initialState.x,
                 testCase.initialState.y,
-                testCase.initialState.p
+                testCase.initialState.p,
+                new NoopInterruptController()
         );
 
         final int cycles = cpu.tickUntilNextOp();

@@ -1,8 +1,7 @@
 package org.example.nes;
 
 public class CPU2A03 {
-    private static final short IRQ_LO_ADDR = (short) 0xfffe;
-    private static final short IRQ_HI_ADDR = (short) 0xffff;
+    private static final short IRQ_ADDR = (short) 0xfffe;
     private static final short RST_ADDR = (short) 0xfffc;
     private static final short NMI_ADDR = (short) 0xfffa;
 
@@ -41,6 +40,13 @@ public class CPU2A03 {
     private byte regP;
 
     private final MemoryMap memoryMap;
+    private final InterruptController interruptionController;
+
+    private boolean interrupt_irq;
+    private boolean interrupt_nmi;
+    private boolean interrupt_reset;
+
+    private Interrupt currentInterrupt;
 
     private OpCode currentOp = OpCode.CPY_IMM;
     private int cycleInInstruction = 0;
@@ -58,7 +64,9 @@ public class CPU2A03 {
                 (byte) 0,
                 (byte) 0,
                 (byte) 0,
-                (byte) 0);
+                (byte) 0,
+                new NoopInterruptController()
+                );
     }
 
     CPU2A03(MemoryMap memoryMap, short regPC) {
@@ -69,10 +77,25 @@ public class CPU2A03 {
                 (byte) 0,
                 (byte) 0,
                 (byte) 0,
-                (byte) 0);
+                (byte) 0,
+                new NoopInterruptController()
+                );
     }
 
-    CPU2A03(MemoryMap memoryMap, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP) {
+    CPU2A03(MemoryMap memoryMap, short regPC, InterruptController interruptController) {
+        this(
+                memoryMap,
+                regPC,
+                STACK_BASE,
+                (byte) 0,
+                (byte) 0,
+                (byte) 0,
+                (byte) 0,
+                interruptController
+        );
+    }
+
+    CPU2A03(MemoryMap memoryMap, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP, InterruptController interruptController) {
         this.memoryMap = memoryMap;
         this.regPC = regPC;
         this.regSP = regSP;
@@ -80,17 +103,49 @@ public class CPU2A03 {
         this.regX = regX;
         this.regY = regY;
         this.regP = regP;
+        this.interruptionController = interruptController;
     }
 
     public void tick() {
         if (cycleInInstruction == 0) {
-            fetchOperation();
+            if ((currentInterrupt = getInterrupt()) != null) {
+                handleInterrupt();
+            } else {
+                fetchOperation();
+            }
+        } else if (currentInterrupt != null) {
+            handleInterrupt();
         } else if (cycleInInstruction - 1 < currentOp.addressMode.cycles) {
             handleAddressing();
         } else {
             handleOperation();
         }
         cycleInInstruction++;
+    }
+
+    private void handleInterrupt() {
+        switch (currentInterrupt) {
+            case RESET -> handleReset();
+            case NMI -> handleNMI();
+            case IRQ -> handleIRQ();
+        }
+    }
+
+    private void handleReset() {
+        if (interrupt_reset) {
+            checkInterrupts();
+            resetCycleInOp();
+            return;
+        }
+        handleInterrupt(false, RST_ADDR);
+    }
+
+    private void handleNMI() {
+        handleInterrupt(false, NMI_ADDR);
+    }
+
+    private void handleIRQ() {
+        handleInterrupt(false, IRQ_ADDR);
     }
 
     private void handleAddressing() {
@@ -133,6 +188,7 @@ public class CPU2A03 {
                 operandAddress = getAddressFromOperandsAndOffsetWithCarry(offset);
                 if (currentOp.operation == Operation.JMP) { // Hack: Handling jump during addressing since JMP has no operation cycles
                     regPC = operandAddress;
+                    checkInterrupts();
                     resetCycleInOp();
                     return;
                 }
@@ -207,6 +263,7 @@ public class CPU2A03 {
             case 3 -> {
                 op1 = memoryMap.get(getAddressFromAddressAndOffsetWithoutCarry((byte) 1, operandAddress));
                 regPC = getAddressFromOperands();
+                checkInterrupts();
                 resetCycleInOp();
             }
         }
@@ -406,6 +463,7 @@ public class CPU2A03 {
         switch (getCycleInOperation()) {
             case 0 -> {
                 fetchOperand0();
+                checkInterrupts();
                 if (isFlagSet(flagBitmask) != flagSet) {
                     nextOp();
                 }
@@ -438,15 +496,20 @@ public class CPU2A03 {
     }
 
     private void handleBRK() {
+        handleInterrupt(true, IRQ_ADDR);
+    }
+
+    private void handleInterrupt(boolean soft, short addr) {
         switch (getCycleInOperation()) {
             case 0 -> fetchOperand0();
-            case 1 -> pushPCH();
-            case 2 -> pushPCL();
-            case 3 -> push((byte) (toUint(regP) | BITMASK_BREAK));
-            case 4 -> regPC = (short) toUint(memoryMap.get(IRQ_LO_ADDR));
+            case 1 -> pushPCH(soft ? 2 : 0);
+            case 2 -> pushPCL(soft ? 2 : 0);
+            case 3 -> push((byte) (toUint(regP) | (soft ? BITMASK_BREAK : 0)));
+            case 4 -> regPC = (short) toUint(memoryMap.get(addr));
             case 5 -> {
-                regPC = getAddressFromOperands((byte) regPC, memoryMap.get(IRQ_HI_ADDR));
+                regPC = getAddressFromOperands((byte) regPC, memoryMap.get((short) (toUint(addr) + 1)));
                 applyFlags(BITMASK_INT_DISABLE, BITMASK_INT_DISABLE);
+                checkInterrupts(); // TODO interrupt check probably not cycle-accurate
                 resetCycleInOp();
             }
         }
@@ -470,8 +533,10 @@ public class CPU2A03 {
 
     private void handleClear(byte bitmask) {
         fetchOperand0();
+        checkInterrupts();
         applyFlags(bitmask, (byte) 0);
-        nextOp();
+        incrementPC();
+        resetCycleInOp();
     }
 
     private void handleCMP() {
@@ -560,11 +625,12 @@ public class CPU2A03 {
 
     private void handleJSR() {
         switch (getCycleInOperation()) {
-            case 0 -> pushPCH();
-            case 1 -> pushPCL();
+            case 0 -> pushPCH(2);
+            case 1 -> pushPCL(2);
             case 2 -> {
                 fetchOperand1();
                 regPC = getAddressFromOperands();
+                checkInterrupts();
                 resetCycleInOp();
             }
         }
@@ -691,6 +757,7 @@ public class CPU2A03 {
             case 3 -> regPC = pull();
             case 4 -> {
                 regPC = getAddressFromOperands((byte) regPC, pull());
+                checkInterrupts();
                 resetCycleInOp();
             }
         }
@@ -723,8 +790,10 @@ public class CPU2A03 {
 
     private void handleSet(byte bitmask) {
         fetchOperand0();
+        checkInterrupts();
         applyFlags(bitmask, bitmask);
-        nextOp();
+        incrementPC();
+        resetCycleInOp();
     }
 
     private void handleSTA() {
@@ -789,12 +858,12 @@ public class CPU2A03 {
         regP = (byte) ((pull() | BITMASK_UNUSED) & ~BITMASK_BREAK);
     }
 
-    private void pushPCH() {
-        push(getPage((short) (toUint(regPC) + 2)));
+    private void pushPCH(int offset) {
+        push(getPage((short) (toUint(regPC) + offset)));
     }
 
-    private void pushPCL() {
-        push((byte) ((toUint(regPC) + 2)));
+    private void pushPCL(int offset) {
+        push((byte) ((toUint(regPC) + offset)));
     }
 
     private void push(byte value) {
@@ -814,6 +883,26 @@ public class CPU2A03 {
     private void nextOp() {
         incrementPC();
         resetCycleInOp();
+        checkInterrupts();
+    }
+
+    private void checkInterrupts() {
+        interrupt_reset = interruptionController.isReset();
+        interrupt_irq = interruptionController.isIrq() && !isFlagSet(BITMASK_INT_DISABLE);
+        interrupt_nmi = interruptionController.isNmi();
+    }
+
+    private Interrupt getInterrupt() {
+        if (interrupt_reset) {
+            return Interrupt.RESET;
+        }
+        if (interrupt_nmi) {
+            return Interrupt.NMI;
+        }
+        if (interrupt_irq) {
+            return Interrupt.IRQ;
+        }
+        return null;
     }
 
     private boolean isCarrySet() {
