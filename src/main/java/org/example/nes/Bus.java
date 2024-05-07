@@ -1,6 +1,6 @@
 package org.example.nes;
 
-public interface MemoryMap {
+public interface Bus {
 
     byte get(short address);
 

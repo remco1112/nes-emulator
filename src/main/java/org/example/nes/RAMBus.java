@@ -1,16 +1,16 @@
 package org.example.nes;
 
-public class RAMMemoryMap implements MemoryMap {
+public class RAMBus implements Bus {
     private static final int RAM_SIZE = 0x10000;
 
     private final byte[] ram;
 
-    protected RAMMemoryMap(byte[] ram) {
+    protected RAMBus(byte[] ram) {
         this();
         System.arraycopy(ram, 0, this.ram, 0, RAM_SIZE);
     }
 
-    public RAMMemoryMap() {
+    public RAMBus() {
         ram = new byte[RAM_SIZE];
     }
 

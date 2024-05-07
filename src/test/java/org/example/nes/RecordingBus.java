@@ -3,10 +3,10 @@ package org.example.nes;
 import java.util.ArrayList;
 import java.util.List;
 
-class RecordingMemoryMap extends RAMMemoryMap {
+class RecordingBus extends RAMBus {
     private final List<Cycle> log = new ArrayList<>();
 
-    RecordingMemoryMap(byte[] ram) {
+    RecordingBus(byte[] ram) {
         super(ram);
     }
 

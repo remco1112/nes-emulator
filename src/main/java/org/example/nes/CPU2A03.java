@@ -39,7 +39,7 @@ public class CPU2A03 {
     private byte regY;
     private byte regP;
 
-    private final MemoryMap memoryMap;
+    private final Bus bus;
     private final InterruptController interruptionController;
 
     private boolean interrupt_irq;
@@ -56,9 +56,9 @@ public class CPU2A03 {
     private byte op0;
     private byte op1;
 
-    CPU2A03(MemoryMap memoryMap) {
+    CPU2A03(Bus bus) {
         this(
-                memoryMap,
+                bus,
                 (short) 0,
                 STACK_BASE,
                 (byte) 0,
@@ -69,9 +69,9 @@ public class CPU2A03 {
                 );
     }
 
-    CPU2A03(MemoryMap memoryMap, short regPC) {
+    CPU2A03(Bus bus, short regPC) {
         this(
-                memoryMap,
+                bus,
                 regPC,
                 STACK_BASE,
                 (byte) 0,
@@ -82,9 +82,9 @@ public class CPU2A03 {
                 );
     }
 
-    CPU2A03(MemoryMap memoryMap, short regPC, InterruptController interruptController) {
+    CPU2A03(Bus bus, short regPC, InterruptController interruptController) {
         this(
-                memoryMap,
+                bus,
                 regPC,
                 STACK_BASE,
                 (byte) 0,
@@ -95,8 +95,8 @@ public class CPU2A03 {
         );
     }
 
-    CPU2A03(MemoryMap memoryMap, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP, InterruptController interruptController) {
-        this.memoryMap = memoryMap;
+    CPU2A03(Bus bus, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP, InterruptController interruptController) {
+        this.bus = bus;
         this.regPC = regPC;
         this.regSP = regSP;
         this.regA = regA;
@@ -180,7 +180,7 @@ public class CPU2A03 {
             case 0 -> fetchOperand0();
             case 1 -> {
                 if (currentOp.operation == Operation.JSR) { // Hack: JSR uses absolute addressing but different cycles
-                    memoryMap.get(getStackAddress());
+                    bus.get(getStackAddress());
                     cycleInInstruction++;
                     return;
                 }
@@ -196,7 +196,7 @@ public class CPU2A03 {
                     cycleInInstruction++;
                 }
             }
-            case 2 -> memoryMap.get(addressInPage(operandAddress) ? operandAddress : subtractPage(operandAddress));
+            case 2 -> bus.get(addressInPage(operandAddress) ? operandAddress : subtractPage(operandAddress));
         }
     }
 
@@ -223,7 +223,7 @@ public class CPU2A03 {
         if (getCycleInAddressing() == 0) {
             fetchOperand0();
         } else {
-            memoryMap.get((short) toUint(op0));
+            bus.get((short) toUint(op0));
             operandAddress = getZeroPageAddress(register);
         }
     }
@@ -231,24 +231,24 @@ public class CPU2A03 {
     private void handleAddressingXIndexedIndirect() {
         switch (getCycleInAddressing()) {
             case 0 -> fetchOperand0();
-            case 1 -> memoryMap.get((short) toUint(op0));
-            case 2 -> operandAddress = (short) toUint(memoryMap.get(getZeroPageAddress(regX)));
-            case 3 -> operandAddress = getAddressFromOperands((byte) operandAddress, memoryMap.get((short) (toUint(getZeroPageAddress((byte) (toUint(regX) + 1))))));
+            case 1 -> bus.get((short) toUint(op0));
+            case 2 -> operandAddress = (short) toUint(bus.get(getZeroPageAddress(regX)));
+            case 3 -> operandAddress = getAddressFromOperands((byte) operandAddress, bus.get((short) (toUint(getZeroPageAddress((byte) (toUint(regX) + 1))))));
         }
     }
 
     private void handleAddressingIndirectYIndexed() {
         switch (getCycleInAddressing()) {
             case 0 -> fetchOperand0();
-            case 1 -> operandAddress = (short) toUint(memoryMap.get(getZeroPageAddress((byte) 0)));
+            case 1 -> operandAddress = (short) toUint(bus.get(getZeroPageAddress((byte) 0)));
             case 2 -> {
-                operandAddress = getAddressFromOperands((byte) operandAddress, memoryMap.get((short) (toUint(getZeroPageAddress((byte) 1)))));
+                operandAddress = getAddressFromOperands((byte) operandAddress, bus.get((short) (toUint(getZeroPageAddress((byte) 1)))));
                 if (samePage(operandAddress, (short) (toUint(operandAddress) + toUint(regY))) && !currentOp.operation.writesToMemory) {
                     cycleInInstruction++;
                 }
                 operandAddress = (short) (toUint(operandAddress) + toUint(regY));
             }
-            case 3 -> memoryMap.get(samePage(operandAddress, (short) (toUint(operandAddress) - toUint(regY))) ? operandAddress : subtractPage(operandAddress));
+            case 3 -> bus.get(samePage(operandAddress, (short) (toUint(operandAddress) - toUint(regY))) ? operandAddress : subtractPage(operandAddress));
         }
     }
 
@@ -259,9 +259,9 @@ public class CPU2A03 {
                 fetchOperand1();
                 operandAddress = getAddressFromOperands();
             }
-            case 2 -> op0 = memoryMap.get(operandAddress);
+            case 2 -> op0 = bus.get(operandAddress);
             case 3 -> {
-                op1 = memoryMap.get(getAddressFromAddressAndOffsetWithoutCarry((byte) 1, operandAddress));
+                op1 = bus.get(getAddressFromAddressAndOffsetWithoutCarry((byte) 1, operandAddress));
                 regPC = getAddressFromOperands();
                 checkInterrupts();
                 resetCycleInOp();
@@ -340,7 +340,7 @@ public class CPU2A03 {
     }
 
     private void fetchOperation() {
-        currentOp = OpCode.fromOpCode(memoryMap.get(regPC));
+        currentOp = OpCode.fromOpCode(bus.get(regPC));
         operandAddress = (short) (toUint(regPC) + 1);
     }
 
@@ -354,11 +354,11 @@ public class CPU2A03 {
     }
 
     private void handleADC() {
-        handleAddition(memoryMap.get(operandAddress));
+        handleAddition(bus.get(operandAddress));
     }
 
     private void handleSBC() {
-        handleAddition((byte) ~memoryMap.get(operandAddress));
+        handleAddition((byte) ~bus.get(operandAddress));
     }
 
     private void handleAddition(byte op) {
@@ -373,7 +373,7 @@ public class CPU2A03 {
     }
 
     private void handleAND() {
-        regA = (byte) (toUint(regA) & toUint(memoryMap.get(operandAddress)));
+        regA = (byte) (toUint(regA) & toUint(bus.get(operandAddress)));
         applyFlagsZN(regA);
         nextOp();
     }
@@ -381,7 +381,7 @@ public class CPU2A03 {
     private void handleASL() {
         switch (getCycleInOperation()) {
             case 0 -> {
-                op0 = memoryMap.get(operandAddress);
+                op0 = bus.get(operandAddress);
                 if (currentOp.addressMode == AddressMode.ACCUMULATOR) {
                     final int res = toUint(regA) << 1;
                     applyFlagsZNC(res);
@@ -389,10 +389,10 @@ public class CPU2A03 {
                     nextOp();
                 }
             }
-            case 1 -> memoryMap.set(operandAddress, op0);
+            case 1 -> bus.set(operandAddress, op0);
             case 2 -> {
                 final int res = toUint(op0) << 1;
-                memoryMap.set(operandAddress, (byte) res);
+                bus.set(operandAddress, (byte) res);
                 applyFlagsZNC(res);
                 nextOp();
             }
@@ -402,7 +402,7 @@ public class CPU2A03 {
     private void handleLSR() {
         switch (getCycleInOperation()) {
             case 0 -> {
-                op0 = memoryMap.get(operandAddress);
+                op0 = bus.get(operandAddress);
                 if (currentOp.addressMode == AddressMode.ACCUMULATOR) {
                     final byte res = (byte) (toUint(regA) >>> 1);
                     applyFlags(BITMASK_ZNC, (byte) (toUint(getFlagsZN(res)) | ((toUint(regA) & 1) << BIT_CARRY)));
@@ -410,10 +410,10 @@ public class CPU2A03 {
                     nextOp();
                 }
             }
-            case 1 -> memoryMap.set(operandAddress, op0);
+            case 1 -> bus.set(operandAddress, op0);
             case 2 -> {
                 final byte res = (byte) (toUint(op0) >>> 1);
-                memoryMap.set(operandAddress, res);
+                bus.set(operandAddress, res);
                 applyFlags(BITMASK_ZNC, (byte) (toUint(getFlagsZN(res)) | ((toUint(op0) & 1) << BIT_CARRY)));
                 nextOp();
             }
@@ -477,7 +477,7 @@ public class CPU2A03 {
             case 2 -> {
                 final short normalNewAddress = getNextPC();
                 final short branchNewAddress = (short) (toUint(normalNewAddress) + op0);
-                memoryMap.get(getAddressFromOperands((byte) branchNewAddress, getPage(normalNewAddress)));
+                bus.get(getAddressFromOperands((byte) branchNewAddress, getPage(normalNewAddress)));
                 regPC = branchNewAddress;
                 resetCycleInOp();
             }
@@ -485,7 +485,7 @@ public class CPU2A03 {
     }
 
     private void handleBIT() {
-        final byte operand = memoryMap.get(operandAddress);
+        final byte operand = bus.get(operandAddress);
         final byte flags = (byte) (getFlagsZ((byte) (toUint(operand) & toUint(regA)))
                 | (toUint(operand) & BITMASK_NV));
         applyFlags(BITMASK_ZNV, flags);
@@ -502,9 +502,9 @@ public class CPU2A03 {
             case 1 -> pushPCH(soft ? 2 : 0);
             case 2 -> pushPCL(soft ? 2 : 0);
             case 3 -> push((byte) (toUint(regP) | (soft ? BITMASK_BREAK : 0)));
-            case 4 -> regPC = (short) toUint(memoryMap.get(addr));
+            case 4 -> regPC = (short) toUint(bus.get(addr));
             case 5 -> {
-                regPC = getAddressFromOperands((byte) regPC, memoryMap.get((short) (toUint(addr) + 1)));
+                regPC = getAddressFromOperands((byte) regPC, bus.get((short) (toUint(addr) + 1)));
                 applyFlags(BITMASK_INT_DISABLE, BITMASK_INT_DISABLE);
                 checkInterrupts(); // TODO interrupt check probably not cycle-accurate
                 resetCycleInOp();
@@ -549,7 +549,7 @@ public class CPU2A03 {
     }
 
     private void handleCompare(byte reg) {
-        final int subtr = Byte.compareUnsigned(reg, memoryMap.get(operandAddress));
+        final int subtr = Byte.compareUnsigned(reg, bus.get(operandAddress));
         final byte flags =  (byte) (getFlagsZN((byte) subtr)
                 | (subtr >= 0 ? BITMASK_CARRY : 0));
         applyFlags(BITMASK_ZNC, flags);
@@ -573,7 +573,7 @@ public class CPU2A03 {
     }
 
     private void handleEOR() {
-        byte operand = memoryMap.get(operandAddress);
+        byte operand = bus.get(operandAddress);
         regA = (byte) (toUint(regA) ^ toUint(operand));
         applyFlagsZN(regA);
         nextOp();
@@ -605,11 +605,11 @@ public class CPU2A03 {
 
     private void handleLiteralMemoryAddition(byte value) {
         switch (getCycleInOperation()) {
-            case 0 -> op0 = memoryMap.get(operandAddress);
-            case 1 -> memoryMap.set(operandAddress, op0);
+            case 0 -> op0 = bus.get(operandAddress);
+            case 1 -> bus.set(operandAddress, op0);
             case 2 -> {
                 final byte dec = (byte) (toUint(op0) + toUint(value));
-                memoryMap.set(operandAddress, dec);
+                bus.set(operandAddress, dec);
                 applyFlagsZN(dec);
                 nextOp();
             }
@@ -646,7 +646,7 @@ public class CPU2A03 {
     }
 
     private byte handleLoad() {
-        byte register = memoryMap.get(operandAddress);
+        byte register = bus.get(operandAddress);
         applyFlagsZN(register);
         nextOp();
         return register;
@@ -658,7 +658,7 @@ public class CPU2A03 {
     }
 
     private void handleORA() {
-        regA = (byte) (toUint(regA) | toUint(memoryMap.get(operandAddress)));
+        regA = (byte) (toUint(regA) | toUint(bus.get(operandAddress)));
         applyFlagsZN(regA);
         nextOp();
     }
@@ -684,7 +684,7 @@ public class CPU2A03 {
     private void handlePLA() {
         switch (getCycleInOperation()) {
             case 0 -> fetchOperand0();
-            case 1 -> memoryMap.get(getStackAddress());
+            case 1 -> bus.get(getStackAddress());
             case 2 -> {
                 regA = pull();
                 applyFlagsZN(regA);
@@ -696,7 +696,7 @@ public class CPU2A03 {
     private void handlePLP() {
         switch (getCycleInOperation()) {
             case 0 -> fetchOperand0();
-            case 1 -> memoryMap.get(getStackAddress());
+            case 1 -> bus.get(getStackAddress());
             case 2 -> {
                 pullP();
                 nextOp();
@@ -707,7 +707,7 @@ public class CPU2A03 {
     private void handleROL() {
         switch (getCycleInOperation()) {
             case 0 -> {
-                op0 = memoryMap.get(operandAddress);
+                op0 = bus.get(operandAddress);
                 if (currentOp.addressMode == AddressMode.ACCUMULATOR) {
                     final int res = (toUint(regA) << 1) | (isCarrySet() ? 1 : 0);
                     applyFlagsZNC(res);
@@ -715,10 +715,10 @@ public class CPU2A03 {
                     nextOp();
                 }
             }
-            case 1 -> memoryMap.set(operandAddress, op0);
+            case 1 -> bus.set(operandAddress, op0);
             case 2 -> {
                 final int res = (toUint(op0) << 1) |  (isCarrySet() ? 1 : 0);
-                memoryMap.set(operandAddress, (byte) res);
+                bus.set(operandAddress, (byte) res);
                 applyFlagsZNC(res);
                 nextOp();
             }
@@ -728,7 +728,7 @@ public class CPU2A03 {
     private void handleROR() {
         switch (getCycleInOperation()) {
             case 0 -> {
-                op0 = memoryMap.get(operandAddress);
+                op0 = bus.get(operandAddress);
                 if (currentOp.addressMode == AddressMode.ACCUMULATOR) {
                     final byte res = (byte) ((toUint(regA) >>> 1) | (isCarrySet() ? 0b10000000 : 0));
                     applyFlags(BITMASK_ZNC, (byte) (toUint(getFlagsZN(res)) | ((toUint(regA) & 1) << BIT_CARRY)));
@@ -736,10 +736,10 @@ public class CPU2A03 {
                     nextOp();
                 }
             }
-            case 1 -> memoryMap.set(operandAddress, op0);
+            case 1 -> bus.set(operandAddress, op0);
             case 2 -> {
                 final byte res = (byte) ((toUint(op0) >>> 1) | (isCarrySet() ? 0b10000000 : 0));
-                memoryMap.set(operandAddress, res);
+                bus.set(operandAddress, res);
                 applyFlags(BITMASK_ZNC, (byte) (toUint(getFlagsZN(res)) | ((toUint(op0) & 1) << BIT_CARRY)));
                 nextOp();
             }
@@ -749,7 +749,7 @@ public class CPU2A03 {
     private void handleRTI() {
         switch (getCycleInOperation()) {
             case 0 -> fetchOperand0();
-            case 1 -> memoryMap.get(getStackAddress());
+            case 1 -> bus.get(getStackAddress());
             case 2 -> pullP();
             case 3 -> regPC = pull();
             case 4 -> {
@@ -763,11 +763,11 @@ public class CPU2A03 {
     private void handleRTS() {
         switch (getCycleInOperation()) {
             case 0 -> fetchOperand0();
-            case 1 -> memoryMap.get(getStackAddress());
+            case 1 -> bus.get(getStackAddress());
             case 2 -> regPC = pull();
             case 3 -> regPC = getAddressFromOperands((byte) regPC, pull());
             case 4 -> {
-                memoryMap.get(regPC);
+                bus.get(regPC);
                 nextOp();
             }
         }
@@ -806,7 +806,7 @@ public class CPU2A03 {
     }
 
     private void handleStore(byte reg) {
-        memoryMap.set(operandAddress, reg);
+        bus.set(operandAddress, reg);
         nextOp();
     }
 
@@ -864,13 +864,13 @@ public class CPU2A03 {
     }
 
     private void push(byte value) {
-        memoryMap.set(getStackAddress(), value);
+        bus.set(getStackAddress(), value);
         regSP = (byte) (toUint(regSP) - 1);
     }
 
     private byte pull() {
         regSP = (byte) (toUint(regSP) + 1);
-        return memoryMap.get(getStackAddress());
+        return bus.get(getStackAddress());
     }
 
     private short getStackAddress() {
@@ -971,11 +971,11 @@ public class CPU2A03 {
     }
 
     private void fetchOperand0() {
-        op0 = memoryMap.get((short) (regPC + 1));
+        op0 = bus.get((short) (regPC + 1));
     }
 
     private void fetchOperand1() {
-        op1 = memoryMap.get((short) (regPC + 2));
+        op1 = bus.get((short) (regPC + 2));
     }
 
     private int toUint(byte byteValue) {
@@ -1026,7 +1026,7 @@ public class CPU2A03 {
         return regP;
     }
 
-    public MemoryMap getMemoryMap() {
-        return memoryMap;
+    public Bus getMemoryMap() {
+        return bus;
     }
 }

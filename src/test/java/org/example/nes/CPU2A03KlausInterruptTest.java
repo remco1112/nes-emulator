@@ -14,10 +14,10 @@ public class CPU2A03KlausInterruptTest {
         try (var is = getClass().getResourceAsStream("6502_interrupt_test.bin")) {
             ram = is.readAllBytes();
         }
-        final MemoryMap memoryMap = new RAMMemoryMap(ram);
+        final Bus bus = new RAMBus(ram);
         short previousRegPC;
         short regPC = 0x400;
-        final CPU2A03 cpu2A03 = new CPU2A03(memoryMap, regPC, new KlausInterruptController(memoryMap));
+        final CPU2A03 cpu2A03 = new CPU2A03(bus, regPC, new KlausInterruptController(bus));
         do {
             cpu2A03.tickUntilNextOp();
             previousRegPC = regPC;

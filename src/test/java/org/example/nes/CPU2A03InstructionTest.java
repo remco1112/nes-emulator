@@ -25,7 +25,7 @@ public class CPU2A03InstructionTest {
 
     static void runTest(TestCase testCase) {
         final CPU2A03 cpu = new CPU2A03(
-                new RecordingMemoryMap(testCase.initialState.ramAsByteArray()),
+                new RecordingBus(testCase.initialState.ramAsByteArray()),
                 testCase.initialState.pc,
                 testCase.initialState.sp,
                 testCase.initialState.a,
@@ -44,9 +44,9 @@ public class CPU2A03InstructionTest {
         assertEquals(testCase.finalState.y, cpu.getRegY());
         assertEquals(testCase.finalState.p, cpu.getRegP());
 
-        final List<Cycle> memoryMapLog = ((RecordingMemoryMap) cpu.getMemoryMap()).getLog();
+        final List<Cycle> memoryMapLog = ((RecordingBus) cpu.getMemoryMap()).getLog();
         assertEquals(cycles, memoryMapLog.size(), "Mismatch between number of CPU cycles and memory access count");
-        assertEquals(testCase.cycles, ((RecordingMemoryMap) cpu.getMemoryMap()).getLog());
+        assertEquals(testCase.cycles, ((RecordingBus) cpu.getMemoryMap()).getLog());
     }
 
     static OpCodeTest[] prepareTests(String[] args) throws IOException {

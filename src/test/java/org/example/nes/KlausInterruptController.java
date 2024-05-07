@@ -6,10 +6,10 @@ public class KlausInterruptController implements InterruptController {
     private static final byte IRQ_BITMASK = 0b1;
     private static final byte NMI_BITMASK = 0b10;
 
-    private final MemoryMap memoryMap;
+    private final Bus bus;
 
-    KlausInterruptController(MemoryMap memoryMap) {
-        this.memoryMap = memoryMap;
+    KlausInterruptController(Bus bus) {
+        this.bus = bus;
     }
 
     private boolean lastNmi = false;
@@ -22,15 +22,15 @@ public class KlausInterruptController implements InterruptController {
 
     @Override
     public boolean isIrq() {
-        return (~memoryMap.get(INTERRUPT_STATUS_ADDR) & IRQ_BITMASK) == IRQ_BITMASK;
+        return (~bus.get(INTERRUPT_STATUS_ADDR) & IRQ_BITMASK) == IRQ_BITMASK;
     }
 
     @Override
     public boolean isNmi() {
         if (lastNmi) {
-            lastNmi = (~memoryMap.get(INTERRUPT_STATUS_ADDR) & NMI_BITMASK) == NMI_BITMASK;
+            lastNmi = (~bus.get(INTERRUPT_STATUS_ADDR) & NMI_BITMASK) == NMI_BITMASK;
             return false;
         }
-        return lastNmi = (~memoryMap.get(INTERRUPT_STATUS_ADDR) & NMI_BITMASK) == NMI_BITMASK;
+        return lastNmi = (~bus.get(INTERRUPT_STATUS_ADDR) & NMI_BITMASK) == NMI_BITMASK;
     }
 }
