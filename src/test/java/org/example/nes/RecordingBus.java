@@ -11,16 +11,16 @@ class RecordingBus extends RAMBus {
     }
 
     @Override
-    public byte get(short address) {
-        final byte value = super.get(address);
+    public byte read(short address) {
+        final byte value = super.read(address);
         log.add(new Cycle(true, address, value));
         return value;
     }
 
     @Override
-    public void set(short address, byte value) {
+    public void write(short address, byte value) {
         log.add(new Cycle(false, address, value));
-        super.set(address, value);
+        super.write(address, value);
     }
 
     public List<Cycle> getLog() {

@@ -22,15 +22,15 @@ public class KlausInterruptController implements InterruptController {
 
     @Override
     public boolean isIrq() {
-        return (~bus.get(INTERRUPT_STATUS_ADDR) & IRQ_BITMASK) == IRQ_BITMASK;
+        return (~bus.read(INTERRUPT_STATUS_ADDR) & IRQ_BITMASK) == IRQ_BITMASK;
     }
 
     @Override
     public boolean isNmi() {
         if (lastNmi) {
-            lastNmi = (~bus.get(INTERRUPT_STATUS_ADDR) & NMI_BITMASK) == NMI_BITMASK;
+            lastNmi = (~bus.read(INTERRUPT_STATUS_ADDR) & NMI_BITMASK) == NMI_BITMASK;
             return false;
         }
-        return lastNmi = (~bus.get(INTERRUPT_STATUS_ADDR) & NMI_BITMASK) == NMI_BITMASK;
+        return lastNmi = (~bus.read(INTERRUPT_STATUS_ADDR) & NMI_BITMASK) == NMI_BITMASK;
     }
 }

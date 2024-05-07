@@ -15,12 +15,12 @@ public class RAMBus implements Bus {
     }
 
     @Override
-    public byte get(short address) {
+    public byte read(short address) {
         return ram[Short.toUnsignedInt(address)];
     }
 
     @Override
-    public void set(short address, byte value) {
+    public void write(short address, byte value) {
         ram[Short.toUnsignedInt(address)] = value;
     }
 }

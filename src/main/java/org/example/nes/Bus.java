@@ -2,7 +2,7 @@ package org.example.nes;
 
 public interface Bus {
 
-    byte get(short address);
+    byte read(short address);
 
-    void set(short address, byte value);
+    void write(short address, byte value);
 }
