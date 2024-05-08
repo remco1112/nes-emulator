@@ -1,11 +1,12 @@
 package org.example.nes.display;
 
 import java.awt.*;
+import java.awt.image.ColorModel;
 
 public class DisplayStaticRunner {
 
     public static void main(String[] args) {
-        final NESImageProducer nesImageProducer = new NESImageProducer();
+        final NESImageProducer nesImageProducer = new NESImageProducer(ColorModel.getRGBdefault());
         final NESFrame nesFrame = new NESFrame(nesImageProducer, 3);
 
         while (true) {

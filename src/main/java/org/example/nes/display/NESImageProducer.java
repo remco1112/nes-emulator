@@ -1,5 +1,6 @@
 package org.example.nes.display;
 
+import java.awt.image.ColorModel;
 import java.awt.image.MemoryImageSource;
 
 public class NESImageProducer extends MemoryImageSource {
@@ -9,14 +10,14 @@ public class NESImageProducer extends MemoryImageSource {
     private final int[] pixels;
     private int nextPixel = 0;
 
-    private NESImageProducer(int[] pixels) {
-        super(SCREEN_WIDTH, SCREEN_HEIGHT, pixels, 0, SCREEN_WIDTH);
+    private NESImageProducer(int[] pixels, ColorModel colorModel) {
+        super(SCREEN_WIDTH, SCREEN_HEIGHT, colorModel, pixels, 0, SCREEN_WIDTH);
         setAnimated(true);
         this.pixels = pixels;
     }
 
-    public NESImageProducer() {
-        this(new int[SCREEN_WIDTH * SCREEN_HEIGHT]);
+    public NESImageProducer(ColorModel colorModel) {
+        this(new int[SCREEN_WIDTH * SCREEN_HEIGHT], colorModel);
     }
 
     public void write(int color) {
