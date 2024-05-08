@@ -1,5 +1,6 @@
-package org.example.nes;
+package org.example.nes.cpu;
 
+import org.example.nes.Bus;
 import org.example.nes.mapper.Mapper;
 
 public class CPU2A03Bus implements Bus {

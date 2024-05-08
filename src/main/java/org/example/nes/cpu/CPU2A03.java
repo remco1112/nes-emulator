@@ -1,4 +1,6 @@
-package org.example.nes;
+package org.example.nes.cpu;
+
+import org.example.nes.Bus;
 
 import static org.example.nes.UInt.toUint;
 

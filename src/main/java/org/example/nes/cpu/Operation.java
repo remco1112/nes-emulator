@@ -1,4 +1,4 @@
-package org.example.nes;
+package org.example.nes.cpu;
 
 public enum Operation {
     LDA,

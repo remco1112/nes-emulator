@@ -1,4 +1,6 @@
-package org.example.nes;
+package org.example.nes.cpu;
+
+import org.example.nes.Bus;
 
 public class KlausInterruptController implements InterruptController {
     private static final short INTERRUPT_STATUS_ADDR = (short) 0xbffc;

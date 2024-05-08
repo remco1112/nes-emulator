@@ -1,7 +1,7 @@
-package org.example.nes;
+package org.example.nes.cpu;
 
-import static org.example.nes.AddressMode.*;
-import static org.example.nes.Operation.*;
+import static org.example.nes.cpu.AddressMode.*;
+import static org.example.nes.cpu.Operation.*;
 
 public enum OpCode {
     BRK_IMP((byte) 0x00, BRK, IMPLIED),

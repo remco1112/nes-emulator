@@ -1,4 +1,4 @@
-package org.example.nes;
+package org.example.nes.cpu;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
