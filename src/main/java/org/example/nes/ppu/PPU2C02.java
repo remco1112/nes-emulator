@@ -7,16 +7,9 @@ public class PPU2C02 {
     private static final int PX_PER_LINE = 341;
     private static final int CYCLES_PER_FRAME = LINES * PX_PER_LINE;
 
-    private static final byte VBLANK_BITMASK = (byte) 0b1000_0000;
-
     private final PPU2C02Bus bus;
 
-    private byte regPpuCtrl;
     private byte regPpuMask;
-    private byte regPpuStatus;
-    private byte regPpuScroll;
-    private byte regPpuAddr;
-    private byte regPpuData;
 
     private byte regOamAddr;
     private byte regOamData;
@@ -28,16 +21,69 @@ public class PPU2C02 {
     private byte x;
 
     private int cycleInFrame;
+    private byte ppuDataReadBuf;
+
     private boolean odd;
+    private boolean vBlank;
+    private boolean vRamPpuDataIncDown;
+    private boolean vBlankNMI;
+    private boolean greyScale;
+    private boolean showBgLeft;
+    private boolean showSpLeft;
+    private boolean showBg;
+    private boolean showSp;
+
+    private byte emphasis; // BGR
+    private short patternTableAddress;
+
+    private byte nt;
+    private byte at;
+    private byte patternLo;
+    private byte patternHi;
+
+    private short patternLoShifter;
+    private short patternHiShifter;
+    private byte attributeLowShifter;
+    private byte attributeHighShifter;
 
     PPU2C02(PPU2C02Bus bus) {
         this.bus = bus;
     }
 
     public void tick() {
+        final int line = getCurrentLine();
+        final int cycle = getCycleInline();
+        final int vInt = toUint(v);
+        if (line < 240 || line == 261) {
+            if (cycle > 0 && cycle <= 256) {
+                switch ((cycle - 1) % 8) {
+                    case 0 -> {
+                        patternLoShifter |= (short) (patternLo << 8);
+                        patternHiShifter |= (short) (patternHi << 8);
+                        // TODO Reset attribute shift registers here: https://forums.nesdev.org/viewtopic.php?t=10348
 
+                        nt = bus.read((short) (0x2000 | (vInt & 0x0FFF)));
+                    }
+                    case 2 -> at = bus.read((short) (0x23C0 | (vInt & 0x0C00) | ((vInt >>> 4) & 0x38) | ((vInt >> 2) & 0x07)));
+                    case 4 -> patternLo = bus.read((short) (toUint(patternTableAddress) + toUint(nt)));
+                    case 6 -> patternHi = bus.read((short) (toUint(patternTableAddress) + toUint(nt) + 8));
+                }
+            }
+        }
 
         cycleInFrame = (cycleInFrame + 1) % (CYCLES_PER_FRAME);
+        if (cycleInFrame == 0) {
+            odd = !odd;
+        }
+    }
+
+    private void incrementVHorizontal() {
+        final int intV = toUint(v);
+        if ((intV & 0x001F) == 31) {                                 // if coarse X == 31
+            v = (short) ((intV & ~0x001F) ^ 0x0400);                 // switch horizontal nametable
+        } else {
+            v = (short) (intV + 1);                                  // increment coarse X
+        }
     }
 
     private int getCurrentLine() {
@@ -48,7 +94,7 @@ public class PPU2C02 {
         return cycleInFrame % PX_PER_LINE;
     }
 
-    private boolean writePixel() {
+    private boolean shouldWritePixel() {
         final int currentLine = getCurrentLine();
         return currentLine >= 0 && currentLine < 240;
     }
@@ -61,6 +107,12 @@ public class PPU2C02 {
         final short gh = (short) (toUint(((byte) (ctrl << 6))) << 4);// 0000GH00 00000000
         t |= gh;
         t &= (short) (gh | 0b11110011_11111111);
+
+        vRamPpuDataIncDown = (ctrl & 0x4) == 0x4;
+        patternTableAddress = (short) ((ctrl & 0x10) << 8);
+
+                vBlankNMI = (ctrl & 0x80) == 0x80;
+        // TODO remaining flags
     }
 
     public void setRegPpuMask(byte regPpuMask) {
@@ -68,15 +120,16 @@ public class PPU2C02 {
     }
 
     // TODO: Race Condition Warning: Reading PPUSTATUS within two cycles of the start of vertical blank will return 0 in bit 7 but clear the latch anyway, causing NMI to not occur that frame.
+    // TODO: Sprite 0 and overflow
     public byte readRegPpuStatus() {
-        final byte currentStatus = regPpuStatus;
+        final byte currentStatus = (byte) (vBlank ? 0x80 : 0);
         clearWrite();
-        clearVBlankStatus();
+        clearVBlank();
         return currentStatus;
     }
 
-    private void clearVBlankStatus() {
-        regPpuStatus &= ~VBLANK_BITMASK;
+    private void clearVBlank() {
+        vBlank = false;
     }
 
     private void clearWrite() {
@@ -112,10 +165,6 @@ public class PPU2C02 {
         w = !w;
     }
 
-    public byte getRegPpuAddr() {
-        return regPpuAddr;
-    }
-
     public void writeRegPpuAddr(byte addr) {
         final int addrInt = toUint(addr);
         if (w) {
@@ -142,12 +191,28 @@ public class PPU2C02 {
         w = !w;
     }
 
-    public byte getRegPpuData() {
-        return regPpuData;
+    public byte readRegPpuData() {
+        if (PPU2C02Bus.isPaletteRamAddress(v)) {
+            ppuDataReadBuf = bus.read(v); // TODO: storing palette ram value in buffer is not correct but good enough for now
+            return ppuDataReadBuf;
+        }
+        final byte returnValue = ppuDataReadBuf;
+        ppuDataReadBuf = bus.read(v);
+        incrementVAfterPpuDataAccess();
+        return returnValue;
     }
 
-    public void setRegPpuData(byte regPpuData) {
-        this.regPpuData = regPpuData;
+    public void writeRegPpuData(byte value) {
+        bus.write(v, value);
+        incrementVAfterPpuDataAccess();
+    }
+
+    private void incrementVAfterPpuDataAccess() {
+        incrementV(vRamPpuDataIncDown ? 32 : 1);
+    }
+
+    private void incrementV(int i) {
+        v = (short) ((toUint(v) + i) % 0x8000);
     }
 
     public byte getRegOamAddr() {
@@ -194,19 +259,7 @@ public class PPU2C02 {
         this.t = t;
     }
 
-    void setV(short v) {
-        this.v = v;
-    }
-
     void setX(byte x) {
         this.x = x;
-    }
-
-    void setRegPpuStatus(byte regPpuStatus) {
-        this.regPpuStatus = regPpuStatus;
-    }
-
-    byte getRegPpuStatus() {
-        return regPpuStatus;
     }
 }

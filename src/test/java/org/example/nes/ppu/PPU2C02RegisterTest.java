@@ -4,7 +4,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class PPU2C02RegisterTest {
 
@@ -24,26 +23,6 @@ public class PPU2C02RegisterTest {
 
         assertEquals(toShort(expectedT), ppu2C02.getT());
     }
-
-    @ParameterizedTest
-    @CsvSource({
-            "00000000, false, 00000000",
-            "00000000, true,  00000000",
-            "11111111, false, 01111111",
-            "10101010, false, 00101010"
-    })
-    void testRegPpuStatus(String initialStatusString, boolean initialW, String expectedStatus) {
-        final byte initialStatus = toByte(initialStatusString);
-
-        PPU2C02 ppu2C02 = new PPU2C02(new PPU2C02Bus());
-        ppu2C02.setW(initialW);
-        ppu2C02.setRegPpuStatus(initialStatus);
-
-        assertEquals(initialStatus, ppu2C02.readRegPpuStatus());
-        assertEquals(toByte(expectedStatus), ppu2C02.getRegPpuStatus());
-        assertFalse(ppu2C02.getW());
-    }
-
 
     @ParameterizedTest
     @CsvSource(value = {
