@@ -52,7 +52,7 @@ public class CPU2A03Bus implements Bus {
 
     private byte readFromPpu(int addr) {
         return switch (addr % 8) {
-            case 2 -> ppu.getRegPpuStatus();
+            case 2 -> ppu.readRegPpuStatus();
             case 3 -> ppu.getRegOamAddr();
             case 4 -> ppu.getRegOamData();
             case 6 -> ppu.getRegPpuAddr();
@@ -71,12 +71,12 @@ public class CPU2A03Bus implements Bus {
 
     private void writeToPpu(int addr, byte value) {
         switch (addr % 8) {
-            case 0 -> ppu.setRegPpuCtrl(value);
+            case 0 -> ppu.writeRegPpuCtrl(value);
             case 1 -> ppu.setRegPpuMask(value);
             case 3 -> ppu.setRegOamAddr(value);
             case 4 -> ppu.setRegOamData(value);
-            case 5 -> ppu.setRegPpuScroll(value);
-            case 6 -> ppu.setRegPpuAddr(value);
+            case 5 -> ppu.writeRegPpuScroll(value);
+            case 6 -> ppu.writeRegPpuAddr(value);
             case 7 -> ppu.setRegPpuData(value);
             default -> throw new IllegalStateException("Illegal PPU register write: " + writeToString(addr, value));
         }
