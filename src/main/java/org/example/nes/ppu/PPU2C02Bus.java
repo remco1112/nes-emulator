@@ -22,7 +22,8 @@ public class PPU2C02Bus implements Bus {
     public byte read(short address) {
         final int addr = toUint(address);
         if (isPaletteRamAddress(addr)) {
-            return paletteRam[addr % 32];
+            final int mirroredAddress = addr - (addr == 0x3F10 || addr == 0x3F14 || addr == 0x3F18 || addr == 0x3F1C ? 0x10 : 0);
+            return paletteRam[mirroredAddress % 32];
         }
         if (mapper.catchPpuRead(address)) {
             return mapper.readPpu(address);
@@ -44,7 +45,8 @@ public class PPU2C02Bus implements Bus {
     public void write(short address, byte value) {
         final int addr = toUint(address);
         if (isPaletteRamAddress(addr)) {
-            paletteRam[addr % 32] = value;
+            final int mirroredAddress = addr - (addr == 0x3F10 || addr == 0x3F14 || addr == 0x3F18 || addr == 0x3F1C ? 0x10 : 0);
+            paletteRam[mirroredAddress % 32] = value;
             return;
         }
         if (mapper.catchPpuWrite(address)) {
