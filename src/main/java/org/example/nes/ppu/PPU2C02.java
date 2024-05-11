@@ -189,16 +189,18 @@ public class PPU2C02 {
                 intV += 0x1000;                                      // increment fine Y
             } else {
                 intV &= ~0x7000;                                     // fine Y = 0
+                int y = (intV & 0x03E0) >> 5;                        // let y = coarse Y
+                if (y == 29) {
+                    y = 0;                                           // coarse Y = 0
+                    intV ^= 0x0800;                                  // switch vertical nametable
+                } else if (y == 31) {
+                    y = 0;                                           // coarse Y = 0, nametable not switched
+                } else {
+                    y += 1;                                          // increment coarse Y
+                }
+                intV = (short) ((intV & ~0x03E0) | (y << 5));        // put coarse Y back into
             }
-            int y = (intV & 0x03E0) >> 5;                            // let y = coarse Y
-            if (y == 29) {
-                y = 0;                                               // coarse Y = 0
-                intV ^= 0x0800;                                      // switch vertical nametable
-            } else if (y == 31) {
-                y = 0;                                               // coarse Y = 0, nametable not switched
-            } else
-                y += 1;                                              // increment coarse Y
-            v = (short) ((intV & ~0x03E0) | (y << 5));               // put coarse Y back into
+            v = (short) intV;
         }
     }
 
