@@ -1,5 +1,6 @@
 package org.example.nes.ppu;
 
+import org.example.nes.VoidBus;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -16,7 +17,7 @@ public class PPU2C02RegisterTest {
             "11000000_00011000, 00000010, 11001000_00011000"
     })
     void testPpuCtrl(String initialT, String input, String expectedT) {
-        PPU2C02 ppu2C02 = new PPU2C02(new PPU2C02Bus());
+        PPU2C02 ppu2C02 = new PPU2C02(new VoidBus());
         ppu2C02.setT(toShort(initialT));
 
         ppu2C02.writeRegPpuCtrl(toByte(input));
@@ -37,7 +38,7 @@ public class PPU2C02RegisterTest {
             "01010101_01010101, 01010101, true,  01010101, 01010101_01010101, false, 01010101"
     }, useHeadersInDisplayName = true)
     void testRegPpuScroll(String initialT, String input, boolean initialW, String initialX, String expectedT, boolean expectedW, String expectedX) {
-        PPU2C02 ppu2C02 = new PPU2C02(new PPU2C02Bus());
+        PPU2C02 ppu2C02 = new PPU2C02(new VoidBus());
         ppu2C02.setT(toShort(initialT));
         ppu2C02.setW(initialW);
         ppu2C02.setX(toByte(initialX));
@@ -62,7 +63,7 @@ public class PPU2C02RegisterTest {
             "01010101_01010101, 01010101, true,  01010101_01010101, false",
     }, useHeadersInDisplayName = true)
     void testRegPpuAddr(String initialT, String input, boolean initialW, String expectedT, boolean expectedW) {
-        PPU2C02 ppu2C02 = new PPU2C02(new PPU2C02Bus());
+        PPU2C02 ppu2C02 = new PPU2C02(new VoidBus());
         ppu2C02.setT(toShort(initialT));
         ppu2C02.setW(initialW);
 

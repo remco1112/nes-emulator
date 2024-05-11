@@ -4,7 +4,8 @@ import org.example.nes.Bus;
 import org.example.nes.mapper.Mapper;
 import org.example.nes.ppu.PPU2C02;
 
-import static org.example.nes.UInt.toUint;
+import static org.example.nes.mapper.Mapper.addrToString;
+import static org.example.nes.mapper.Mapper.writeToString;
 
 public class CPU2A03Bus implements Bus {
     private final byte[] ram = new byte[0x800];
@@ -19,15 +20,15 @@ public class CPU2A03Bus implements Bus {
 
     @Override
     public byte read(short address) {
-        if (mapper.catchRead(address)) {
-            return mapper.read(address);
+        if (mapper.catchCpuRead(address)) {
+            return mapper.readCpu(address);
         }
         return handleReadAndNotify(address);
     }
 
     private byte handleReadAndNotify(short address) {
         byte value = handleRead(address);
-        mapper.notifyRead(address, value);
+        mapper.notifyCpuRead(address, value);
         return value;
     }
 
@@ -90,7 +91,7 @@ public class CPU2A03Bus implements Bus {
 
     private void handleWriteAndNotify(short addr, byte value) {
         handleWrite(addr, value);
-        mapper.notifyWrite(addr, value);
+        mapper.notifyCpuWrite(addr, value);
     }
 
     private void handleWrite(short address, byte value) {
@@ -112,18 +113,10 @@ public class CPU2A03Bus implements Bus {
 
     @Override
     public void write(short address, byte value) {
-        if (mapper.catchWrite(address)) {
-            mapper.write(address, value);
+        if (mapper.catchCpuWrite(address)) {
+            mapper.writeCpu(address, value);
             return;
         }
         handleWriteAndNotify(address, value);
-    }
-
-    private static String addrToString(int address) {
-        return Integer.toUnsignedString(address, 16);
-    }
-
-    private static String writeToString(int address, byte value) {
-        return addrToString(address)  + " <- " + Integer.toUnsignedString(toUint(value), 16);
     }
 }

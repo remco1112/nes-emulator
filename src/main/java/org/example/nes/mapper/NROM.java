@@ -14,33 +14,64 @@ public class NROM implements Mapper {
     }
 
     @Override
-    public boolean catchRead(short address) {
+    public boolean catchCpuRead(short address) {
         final int uIntAddr = toUint(address);
         return uIntAddr >= ROM_OFFSET && uIntAddr <= 0xFFFF;
     }
 
     @Override
-    public boolean catchWrite(short address) {
+    public boolean catchCpuWrite(short address) {
         return false;
     }
 
     @Override
-    public void notifyRead(short address, byte value) {
+    public void notifyCpuRead(short address, byte value) {
 
     }
 
     @Override
-    public void notifyWrite(short address, byte value) {
+    public void notifyCpuWrite(short address, byte value) {
 
     }
 
     @Override
-    public byte read(short address) {
+    public byte readCpu(short address) {
         return pgrRom[(toUint(address) - ROM_OFFSET) % pgrRom.length];
     }
 
     @Override
-    public void write(short address, byte value) {
+    public void writeCpu(short address, byte value) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean catchPpuRead(short address) {
+        final int uIntAddr = toUint(address);
+        return uIntAddr < 0x2000;
+    }
+
+    @Override
+    public boolean catchPpuWrite(short address) {
+        return false;
+    }
+
+    @Override
+    public void notifyPpuRead(short address, byte value) {
+
+    }
+
+    @Override
+    public void notifyPpuWrite(short address, byte value) {
+
+    }
+
+    @Override
+    public byte readPpu(short address) {
+        return chrRom[address];
+    }
+
+    @Override
+    public void writePpu(short address, byte value) {
+
     }
 }

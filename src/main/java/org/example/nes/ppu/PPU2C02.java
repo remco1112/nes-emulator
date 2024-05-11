@@ -1,5 +1,7 @@
 package org.example.nes.ppu;
 
+import org.example.nes.Bus;
+
 import static org.example.nes.UInt.toUint;
 
 public class PPU2C02 {
@@ -7,7 +9,7 @@ public class PPU2C02 {
     private static final int PX_PER_LINE = 341;
     private static final int CYCLES_PER_FRAME = LINES * PX_PER_LINE;
 
-    private final PPU2C02Bus bus;
+    private final Bus bus;
     private final VBlankNotificationReceiver vBlankNotificationReceiver;
     private final PixelConsumer pixelConsumer;
 
@@ -46,13 +48,13 @@ public class PPU2C02 {
     private short attributeLoShifter;
     private short attributeHiShifter;
 
-    PPU2C02(PPU2C02Bus bus, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer) {
+    PPU2C02(Bus bus, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer) {
         this.bus = bus;
         this.vBlankNotificationReceiver = vBlankNotificationReceiver;
         this.pixelConsumer = pixelConsumer;
     }
 
-    PPU2C02(PPU2C02Bus bus) {
+    PPU2C02(Bus bus) {
         this(bus, () -> {}, (_) -> {});
     }
 
