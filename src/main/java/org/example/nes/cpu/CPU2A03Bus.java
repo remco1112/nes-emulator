@@ -71,7 +71,7 @@ public class CPU2A03Bus implements Bus {
     private void writeToPpu(int addr, byte value) {
         switch (addr % 8) {
             case 0 -> ppu.writeRegPpuCtrl(value);
-            case 1 -> ppu.setRegPpuMask(value);
+            case 1 -> ppu.writeRegPpuMask(value);
             case 3 -> ppu.setRegOamAddr(value);
             case 4 -> ppu.setRegOamData(value);
             case 5 -> ppu.writeRegPpuScroll(value);

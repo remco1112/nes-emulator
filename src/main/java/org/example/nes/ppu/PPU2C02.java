@@ -8,8 +8,8 @@ public class PPU2C02 {
     private static final int CYCLES_PER_FRAME = LINES * PX_PER_LINE;
 
     private final PPU2C02Bus bus;
-
-    private byte regPpuMask;
+    private final VBlankNotificationReceiver vBlankNotificationReceiver;
+    private final PixelConsumer pixelConsumer;
 
     private byte regOamAddr;
     private byte regOamData;
@@ -26,7 +26,7 @@ public class PPU2C02 {
     private boolean odd;
     private boolean vBlank;
     private boolean vRamPpuDataIncDown;
-    private boolean vBlankNMI;
+    private boolean vBlankNotify;
     private boolean greyScale;
     private boolean showBgLeft;
     private boolean showSpLeft;
@@ -43,46 +43,196 @@ public class PPU2C02 {
 
     private short patternLoShifter;
     private short patternHiShifter;
-    private byte attributeLowShifter;
-    private byte attributeHighShifter;
+    private short attributeLoShifter;
+    private short attributeHiShifter;
+
+    PPU2C02(PPU2C02Bus bus, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer) {
+        this.bus = bus;
+        this.vBlankNotificationReceiver = vBlankNotificationReceiver;
+        this.pixelConsumer = pixelConsumer;
+    }
 
     PPU2C02(PPU2C02Bus bus) {
-        this.bus = bus;
+        this(bus, () -> {}, (_) -> {});
     }
 
     public void tick() {
         final int line = getCurrentLine();
         final int cycle = getCycleInline();
-        final int vInt = toUint(v);
         if (line < 240 || line == 261) {
             if (cycle > 0 && cycle <= 256) {
-                switch ((cycle - 1) % 8) {
-                    case 0 -> {
-                        patternLoShifter |= (short) (patternLo << 8);
-                        patternHiShifter |= (short) (patternHi << 8);
-                        // TODO Reset attribute shift registers here: https://forums.nesdev.org/viewtopic.php?t=10348
-
-                        nt = bus.read((short) (0x2000 | (vInt & 0x0FFF)));
-                    }
-                    case 2 -> at = bus.read((short) (0x23C0 | (vInt & 0x0C00) | ((vInt >>> 4) & 0x38) | ((vInt >> 2) & 0x07)));
-                    case 4 -> patternLo = bus.read((short) (toUint(patternTableAddress) + toUint(nt)));
-                    case 6 -> patternHi = bus.read((short) (toUint(patternTableAddress) + toUint(nt) + 8));
+                producePixel();
+                handleFetchCycles(cycle);
+                if (cycle == 256) {
+                    incrementVVertical();
                 }
+            } else if (cycle == 257) {
+                // reloadShifters(); ???
+                resetVHorizontal();
+            } else if (cycle > 320 && cycle <= 336) {
+                handleFetchCycles(cycle);
+            }
+            if (line == 261) {
+                if (cycle == 1) {
+                    vBlank = false;
+                } else if (cycle == 340 && !odd) {
+                    incrementCycleCounter();
+                } else if (cycle > 279 && cycle <= 304) {
+                    resetVVertical();
+                }
+            }
+        } else if (line == 241 && cycle == 1) {
+            vBlank = true;
+            if (vBlankNotify) {
+                vBlankNotificationReceiver.onPpuVBlank();
             }
         }
 
+        incrementCycleCounter();
+    }
+
+    private void producePixel() {
+        short paletteIndex = (short) ((patternLoShifter & 0x1)
+                        | ((patternHiShifter & 0x1) << 1)
+                        | ((attributeLoShifter & 0x1) << 2)
+                        | ((attributeHiShifter & 0x1) << 3)
+                        | (0 << 4));                                 // TODO background/sprite select
+
+        if (greyScale) {
+            paletteIndex &= 0x30;
+        }
+
+        short pixel = bus.read((short) (0x3F00 | paletteIndex));
+        pixelConsumer.onPixel((short) (pixel | (emphasis << 5)));
+    }
+
+    private void incrementCycleCounter() {
         cycleInFrame = (cycleInFrame + 1) % (CYCLES_PER_FRAME);
         if (cycleInFrame == 0) {
             odd = !odd;
         }
     }
 
+    private void handleFetchCycles(int cycle) {
+        shiftRegisters();
+        switch ((cycle - 1) % 8) {
+            case 0 -> {
+                reloadShifters();
+                loadTile();
+            }
+            case 2 -> loadAttribute();
+            case 4 -> loadPatternLow();
+            case 6 -> loadPatternHigh();
+            case 7 -> incrementVHorizontal();
+        }
+    }
+
+    private void shiftRegisters() {
+        patternHiShifter >>>= 1;
+        patternLoShifter >>>= 1;
+        attributeHiShifter >>>= 1;
+        attributeLoShifter >>>= 1;
+    }
+
+    private void loadPatternHigh() {
+        patternHi = bus.read((short) (toUint(patternTableAddress) + toUint(nt) + 8));
+    }
+
+    private void loadPatternLow() {
+        patternLo = bus.read((short) (toUint(patternTableAddress) + toUint(nt)));
+    }
+
+    private void loadAttribute() {
+        final int vInt = toUint(v);
+        at = bus.read((short) (0x23C0 | (vInt & 0x0C00) | ((vInt >>> 4) & 0x38) | ((vInt >> 2) & 0x07)));
+    }
+
+    private void loadTile() {
+        nt = bus.read((short) (0x2000 | (toUint(v) & 0x0FFF)));
+    }
+
+    private void reloadShifters() {
+        final int vInt = toUint(v);
+
+        patternLoShifter |= (short) (patternLo << 8);
+        patternHiShifter |= (short) (patternHi << 8);
+
+        final int attribute = toUint(at) >>> ((vInt & 2) + ((vInt & 64) == 64 ? 4 : 0));
+        attributeLoShifter |= (short) ((attribute & 0b01) == 0b01 ? 0xff00 : 0);
+        attributeHiShifter |= (short) ((attribute & 0b10) == 0b10 ? 0xff00 : 0);
+    }
+
     private void incrementVHorizontal() {
-        final int intV = toUint(v);
-        if ((intV & 0x001F) == 31) {                                 // if coarse X == 31
-            v = (short) ((intV & ~0x001F) ^ 0x0400);                 // switch horizontal nametable
-        } else {
-            v = (short) (intV + 1);                                  // increment coarse X
+        if (renderingEnabled()) {
+            final int intV = toUint(v);
+            if ((intV & 0x001F) == 31) {                             // if coarse X == 31
+                v = (short) ((intV & ~0x001F) ^ 0x0400);             // switch horizontal nametable
+            } else {
+                v = (short) (intV + 1);                              // increment coarse X
+            }
+        }
+    }
+
+    private void incrementVVertical() {
+        if (renderingEnabled()) {
+            int intV = toUint(v);
+            if ((intV & 0x7000) != 0x7000) {                         // if fine Y < 7
+                intV += 0x1000;                                      // increment fine Y
+            } else {
+                intV &= ~0x7000;                                     // fine Y = 0
+            }
+            int y = (intV & 0x03E0) >> 5;                            // let y = coarse Y
+            if (y == 29) {
+                y = 0;                                               // coarse Y = 0
+                intV ^= 0x0800;                                      // switch vertical nametable
+            } else if (y == 31) {
+                y = 0;                                               // coarse Y = 0, nametable not switched
+            } else
+                y += 1;                                              // increment coarse Y
+            v = (short) ((intV & ~0x03E0) | (y << 5));               // put coarse Y back into
+        }
+    }
+
+    private void resetVHorizontal() {
+        if (renderingEnabled()) {
+            int vInt = toUint(v);
+            final int tInt = toUint(t);
+
+            // set nametable x
+            final int ntxmask = 1 << 10;
+            vInt &= ~ntxmask;
+            vInt |= tInt & ntxmask;
+
+            // set coarse x
+            final int coarsexmask = 0x1F;
+            vInt &= ~coarsexmask;
+            vInt |= tInt & coarsexmask;
+
+            v = (short) vInt;
+        }
+    }
+
+    private void resetVVertical() {
+        if (renderingEnabled()) {
+            int vInt = toUint(v);
+            final int tInt = toUint(t);
+
+            // set fine y
+            final int fineymask = 0x7 << 12;
+            vInt &= ~fineymask;
+            vInt |= tInt & fineymask;
+
+            // set nametable y
+            final int ntymask = 0x1 << 11;
+            vInt &= ~ntymask;
+            vInt |= tInt & ntymask;
+
+            // set coarse y
+            final int coarseymask = 0x1F << 5;
+            vInt &= ~coarseymask;
+            vInt |= tInt & coarseymask;
+
+            v = (short) vInt;
         }
     }
 
@@ -94,12 +244,10 @@ public class PPU2C02 {
         return cycleInFrame % PX_PER_LINE;
     }
 
-    private boolean shouldWritePixel() {
-        final int currentLine = getCurrentLine();
-        return currentLine >= 0 && currentLine < 240;
+    private boolean renderingEnabled() {
+        return showBg || showSp;
     }
 
-    // TODO: If the PPU is currently in vertical blank, and the PPUSTATUS ($2002) vblank flag is still set (1), changing the NMI flag in bit 7 of $2000 from 0 to 1 will immediately generate an NMI.
     public void writeRegPpuCtrl(byte ctrl) {
         /*
             t: ...GH.. ........ <- d: ......GH
@@ -111,12 +259,21 @@ public class PPU2C02 {
         vRamPpuDataIncDown = (ctrl & 0x4) == 0x4;
         patternTableAddress = (short) ((ctrl & 0x10) << 8);
 
-                vBlankNMI = (ctrl & 0x80) == 0x80;
+        vBlankNotify = (ctrl & 0x80) == 0x80;
+        if (vBlank && vBlankNotify) {
+            vBlankNotificationReceiver.onPpuVBlank();
+        }
+
         // TODO remaining flags
     }
 
-    public void setRegPpuMask(byte regPpuMask) {
-        this.regPpuMask = regPpuMask;
+    public void writeRegPpuMask(byte regPpuMask) {
+        greyScale = (regPpuMask & 1) == 1;
+        showBgLeft = (regPpuMask & 2) == 2;
+        showSpLeft = (regPpuMask & 4) == 4;
+        showBg = (regPpuMask & 8) == 8;
+        showSp = (regPpuMask & 0x10) == 0x10;
+        emphasis = (byte) ((regPpuMask & 0xE0) >>> 5);
     }
 
     // TODO: Race Condition Warning: Reading PPUSTATUS within two cycles of the start of vertical blank will return 0 in bit 7 but clear the latch anyway, causing NMI to not occur that frame.
