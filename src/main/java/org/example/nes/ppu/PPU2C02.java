@@ -101,10 +101,10 @@ public class PPU2C02 {
     }
 
     private void producePixel() {
-        short paletteIndex = (short) ((patternLoShifter & 0x1)
-                        | ((patternHiShifter & 0x1) << 1)
-                        | ((attributeLoShifter & 0x1) << 2)
-                        | ((attributeHiShifter & 0x1) << 3)
+        short paletteIndex = (short) (((patternLoShifter & 0x80) >> 7)
+                        | (((patternHiShifter & 0x80) >> 7) << 1)
+                        | (((attributeLoShifter & 0x80) >> 7) << 2)
+                        | (((attributeHiShifter & 0x80) >> 7) << 3)
                         | (0 << 4));                                 // TODO background/sprite select
 
         if (greyScale) {
@@ -137,10 +137,10 @@ public class PPU2C02 {
     }
 
     private void shiftRegisters() {
-        patternHiShifter = (short) (toUint(patternHiShifter) >>> 1);
-        patternLoShifter = (short) (toUint(patternLoShifter) >>> 1);
-        attributeHiShifter = (short) (toUint(attributeHiShifter) >>> 1);
-        attributeLoShifter = (short) (toUint(attributeLoShifter) >>> 1);
+        patternHiShifter = (short) (toUint(patternHiShifter) << 1);
+        patternLoShifter = (short) (toUint(patternLoShifter) << 1);
+        attributeHiShifter = (short) (toUint(attributeHiShifter) << 1);
+        attributeLoShifter = (short) (toUint(attributeLoShifter) << 1);
     }
 
     private void loadPatternHigh() {
@@ -163,12 +163,12 @@ public class PPU2C02 {
     private void reloadShifters() {
         final int vInt = toUint(v);
 
-        patternLoShifter |= (short) (patternLo << 8);
-        patternHiShifter |= (short) (patternHi << 8);
+        patternLoShifter |= patternLo;
+        patternHiShifter |= patternHi;
 
         final int attribute = toUint(at) >>> ((vInt & 2) + ((vInt & 64) == 64 ? 4 : 0));
-        attributeLoShifter |= (short) ((attribute & 0b01) == 0b01 ? 0xff00 : 0);
-        attributeHiShifter |= (short) ((attribute & 0b10) == 0b10 ? 0xff00 : 0);
+        attributeLoShifter |= (short) ((attribute & 0b01) == 0b01 ? 0x00ff : 0);
+        attributeHiShifter |= (short) ((attribute & 0b10) == 0b10 ? 0x00ff : 0);
     }
 
     private void incrementVHorizontal() {
