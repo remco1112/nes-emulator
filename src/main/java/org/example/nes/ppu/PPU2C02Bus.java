@@ -32,7 +32,7 @@ public class PPU2C02Bus implements Bus {
             mapper.notifyPpuRead(address, value);
             return value;
         }
-        System.out.println("Warning: received unmapped read: " + addrToString(address));
+        System.out.println("Warning: received unmapped ppu read: " + addrToString(address));
         return 0;
     }
 
@@ -56,7 +56,7 @@ public class PPU2C02Bus implements Bus {
             mapper.notifyPpuWrite(address, value);
             return;
         }
-        System.out.println("Warning: received unmapped write: " + writeToString(addr, value));
+        System.out.println("Warning: received unmapped ppu write: " + writeToString(addr, value));
     }
 
     static boolean isPaletteRamAddress(short address) {

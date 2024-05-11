@@ -1,6 +1,8 @@
 package org.example.nes.cpu;
 
 import org.example.nes.Bus;
+import org.example.nes.mapper.Mapper;
+import org.example.nes.ppu.PPU2C02;
 
 import static org.example.nes.UInt.toUint;
 
@@ -70,7 +72,7 @@ public class CPU2A03 {
                 (byte) 0,
                 (byte) 0,
                 new NoopInterruptController()
-                );
+        );
     }
 
     CPU2A03(Bus bus, short regPC) {
@@ -83,7 +85,7 @@ public class CPU2A03 {
                 (byte) 0,
                 (byte) 0,
                 new NoopInterruptController()
-                );
+        );
     }
 
     CPU2A03(Bus bus, short regPC, InterruptController interruptController) {
@@ -97,6 +99,19 @@ public class CPU2A03 {
                 (byte) 0,
                 interruptController
         );
+    }
+
+    public CPU2A03(Mapper mapper, PPU2C02 ppu, InterruptController interruptController) {
+        this(
+                new CPU2A03Bus(mapper, ppu),
+                (short) 0,
+                STACK_BASE,
+                (byte) 0,
+                (byte) 0,
+                (byte) 0,
+                (byte) 0,
+                interruptController);
+        interrupt_reset = true;
     }
 
     CPU2A03(Bus bus, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP, InterruptController interruptController) {
@@ -136,11 +151,11 @@ public class CPU2A03 {
     }
 
     private void handleReset() {
-        if (interrupt_reset) {
-            checkInterrupts();
-            resetCycleInOp();
-            return;
-        }
+//        if (interrupt_reset) {
+//            checkInterrupts();
+//            resetCycleInOp();
+//            return;
+//        }
         handleInterrupt(false, RST_ADDR);
     }
 
@@ -368,7 +383,7 @@ public class CPU2A03 {
     private void handleAddition(byte op) {
         final int operand = toUint(op);
         int res = toUint(regA) + operand + (isCarrySet() ? 1 : 0);
-        final byte flags =  (byte) (getFlagsZNC(res)
+        final byte flags = (byte) (getFlagsZNC(res)
                 | ((toUint(regA) >>> 7 == operand >>> 7) && (operand >>> 7 != toUint((byte) res) >>> 7) ? BITMASK_OVERFLOW : 0)
         );
         regA = (byte) res;
@@ -503,9 +518,15 @@ public class CPU2A03 {
     private void handleInterrupt(boolean soft, short addr) {
         switch (getCycleInOperation()) {
             case 0 -> fetchOperand0();
-            case 1 -> pushPCH(soft ? 2 : 0);
-            case 2 -> pushPCL(soft ? 2 : 0);
-            case 3 -> push((byte) (toUint(regP) | (soft ? BITMASK_BREAK : 0)));
+            case 1 -> {
+                if (addr != RST_ADDR) pushPCH(soft ? 2 : 0);
+            }
+            case 2 -> {
+                if (addr != RST_ADDR) pushPCL(soft ? 2 : 0);
+            }
+            case 3 -> {
+                if (addr != RST_ADDR) push((byte) (toUint(regP) | (soft ? BITMASK_BREAK : 0)));
+            }
             case 4 -> regPC = (short) toUint(bus.read(addr));
             case 5 -> {
                 regPC = getAddressFromOperands((byte) regPC, bus.read((short) (toUint(addr) + 1)));
@@ -554,7 +575,7 @@ public class CPU2A03 {
 
     private void handleCompare(byte reg) {
         final int subtr = Byte.compareUnsigned(reg, bus.read(operandAddress));
-        final byte flags =  (byte) (getFlagsZN((byte) subtr)
+        final byte flags = (byte) (getFlagsZN((byte) subtr)
                 | (subtr >= 0 ? BITMASK_CARRY : 0));
         applyFlags(BITMASK_ZNC, flags);
         nextOp();
@@ -721,7 +742,7 @@ public class CPU2A03 {
             }
             case 1 -> bus.write(operandAddress, op0);
             case 2 -> {
-                final int res = (toUint(op0) << 1) |  (isCarrySet() ? 1 : 0);
+                final int res = (toUint(op0) << 1) | (isCarrySet() ? 1 : 0);
                 bus.write(operandAddress, (byte) res);
                 applyFlagsZNC(res);
                 nextOp();

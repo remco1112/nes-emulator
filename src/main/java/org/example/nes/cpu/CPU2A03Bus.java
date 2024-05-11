@@ -43,7 +43,7 @@ public class CPU2A03Bus implements Bus {
         if (addr < 0x4018) {
             return readFromIO(addr);
         }
-        System.out.println("Warning: received unmapped read: " + addrToString(address));
+        System.out.println("Warning: received unmapped ppu read: " + addrToString(address));
         return 0;
     }
 
@@ -62,7 +62,8 @@ public class CPU2A03Bus implements Bus {
     }
 
     private byte readFromIO(int addr) {
-        throw new IllegalStateException("Read from unsupported/illegal IO address at: " + addrToString(addr));
+      //  throw new IllegalStateException("Read from unsupported/illegal IO address at: " + addrToString(addr));
+        return 0;
     }
 
     private void writeToRam(int addr, byte value) {
@@ -85,7 +86,9 @@ public class CPU2A03Bus implements Bus {
     private void writeToIo(int addr, byte value) {
         switch (addr % 0x18) {
             case 0x14 -> ppu.setRegOamDma(value);
-            default -> throw new IllegalStateException("Illegal IO register write: " + writeToString(addr, value));
+            default -> {
+                // throw new IllegalStateException("Illegal IO register write: " + writeToString(addr, value));
+            }
         }
     }
 
@@ -108,7 +111,7 @@ public class CPU2A03Bus implements Bus {
             writeToIo(addr, value);
             return;
         }
-        System.out.println("Warning: received unmapped write: " + writeToString(addr, value));
+        System.out.println("Warning: received unmapped ppu write: " + writeToString(addr, value));
     }
 
     @Override

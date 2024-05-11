@@ -1,6 +1,7 @@
 package org.example.nes.ppu;
 
 import org.example.nes.Bus;
+import org.example.nes.mapper.Mapper;
 
 import static org.example.nes.UInt.toUint;
 
@@ -47,6 +48,10 @@ public class PPU2C02 {
     private short patternHiShifter;
     private short attributeLoShifter;
     private short attributeHiShifter;
+
+    public PPU2C02(Mapper mapper, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer) {
+        this(new PPU2C02Bus(mapper), vBlankNotificationReceiver, pixelConsumer);
+    }
 
     PPU2C02(Bus bus, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer) {
         this.bus = bus;
@@ -104,7 +109,7 @@ public class PPU2C02 {
             paletteIndex &= 0x30;
         }
 
-        short pixel = bus.read((short) (0x3F00 | paletteIndex));
+        short pixel = showBg ? bus.read((short) (0x3F00 | paletteIndex)) : 0;
         pixelConsumer.onPixel((short) (pixel | (emphasis << 5)));
     }
 
@@ -239,7 +244,7 @@ public class PPU2C02 {
     }
 
     private int getCurrentLine() {
-        return cycleInFrame / LINES;
+        return cycleInFrame / PX_PER_LINE;
     }
 
     private int getCycleInline() {
