@@ -137,10 +137,10 @@ public class PPU2C02 {
     }
 
     private void shiftRegisters() {
-        patternHiShifter >>>= 1;
-        patternLoShifter >>>= 1;
-        attributeHiShifter >>>= 1;
-        attributeLoShifter >>>= 1;
+        patternHiShifter = (short) (toUint(patternHiShifter) >>> 1);
+        patternLoShifter = (short) (toUint(patternLoShifter) >>> 1);
+        attributeHiShifter = (short) (toUint(attributeHiShifter) >>> 1);
+        attributeLoShifter = (short) (toUint(attributeLoShifter) >>> 1);
     }
 
     private void loadPatternHigh() {
