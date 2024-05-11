@@ -68,7 +68,9 @@ public class PPU2C02 {
         final int cycle = getCycleInline();
         if (line < 240 || line == 261) {
             if (cycle > 0 && cycle <= 256) {
-                producePixel();
+                if (line != 261) {
+                    producePixel();
+                }
                 handleFetchCycles(cycle);
                 if (cycle == 256) {
                     incrementVVertical();
@@ -142,11 +144,11 @@ public class PPU2C02 {
     }
 
     private void loadPatternHigh() {
-        patternHi = bus.read((short) (toUint(patternTableAddress) + toUint(nt) + 8));
+        patternHi = bus.read((short) (toUint(patternTableAddress) + (toUint(nt) << 4) + ((toUint(v) >>> 12) & 0x7) + 8));
     }
 
     private void loadPatternLow() {
-        patternLo = bus.read((short) (toUint(patternTableAddress) + toUint(nt)));
+        patternLo = bus.read((short) (toUint(patternTableAddress) + (toUint(nt) << 4) + ((toUint(v) >>> 12) & 0x7)));
     }
 
     private void loadAttribute() {
