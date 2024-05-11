@@ -111,7 +111,7 @@ public class CPU2A03Bus implements Bus {
             writeToIo(addr, value);
             return;
         }
-        System.out.println("Warning: received unmapped ppu write: " + writeToString(addr, value));
+        System.out.println("Warning: received unmapped cpu write: " + writeToString(addr, value));
     }
 
     @Override
