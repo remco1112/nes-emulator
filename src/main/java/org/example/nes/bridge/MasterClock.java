@@ -18,16 +18,25 @@ public class MasterClock {
 
     public void start() {
         int counter = 0;
-        try {
-            while (true) {
-                ppu2C02.tick();
-                if (counter++ % 3 == 0) {
-                    cpu2A03.tick();
+        long prevTime = System.currentTimeMillis();
+        while (true) {
+            if (counter == 0) {
+                long curTime = System.currentTimeMillis();
+                try {
+                    final long sleepTime = 17 - (curTime - prevTime);
+                    prevTime = curTime;
+                    if (sleepTime > 0) {
+                        Thread.sleep(sleepTime);
+                    }
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
             }
-        } catch (Exception e) {
-            System.out.println(counter);
-            e.printStackTrace();
+            ppu2C02.tick();
+            if (counter % 3 == 0) {
+                cpu2A03.tick();
+            }
+            counter = (counter + 1) % 89341;
         }
     }
 }
