@@ -24,7 +24,7 @@ public class NESImageProducer extends MemoryImageSource implements PixelConsumer
 
     public void write(int color) {
         pixels[nextPixel] = color;
-        newPixels(nextPixel % SCREEN_WIDTH, nextPixel / SCREEN_HEIGHT,1,1, nextPixel == SCREEN_WIDTH * SCREEN_HEIGHT - 1);
+        newPixels(nextPixel % SCREEN_WIDTH, nextPixel / SCREEN_WIDTH,1,1, nextPixel == SCREEN_WIDTH * SCREEN_HEIGHT - 1);
         nextPixel = (nextPixel + 1) % (SCREEN_WIDTH * SCREEN_HEIGHT);
     }
 
