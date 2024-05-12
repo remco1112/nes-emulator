@@ -156,15 +156,15 @@ public class CPU2A03 {
 //            resetCycleInOp();
 //            return;
 //        }
-        handleInterrupt(false, RST_ADDR);
+        handleInterrupt(false, RST_ADDR, true);
     }
 
     private void handleNMI() {
-        handleInterrupt(false, NMI_ADDR);
+        handleInterrupt(false, NMI_ADDR, false);
     }
 
     private void handleIRQ() {
-        handleInterrupt(false, IRQ_ADDR);
+        handleInterrupt(false, IRQ_ADDR, false);
     }
 
     private void handleAddressing() {
@@ -512,21 +512,15 @@ public class CPU2A03 {
     }
 
     private void handleBRK() {
-        handleInterrupt(true, IRQ_ADDR);
+        handleInterrupt(true, IRQ_ADDR, false);
     }
 
-    private void handleInterrupt(boolean soft, short addr) {
+    private void handleInterrupt(boolean soft, short addr, boolean disableStackWrites) {
         switch (getCycleInOperation()) {
             case 0 -> fetchOperand0();
-            case 1 -> {
-                if (addr != RST_ADDR) pushPCH(soft ? 2 : 0);
-            }
-            case 2 -> {
-                if (addr != RST_ADDR) pushPCL(soft ? 2 : 0);
-            }
-            case 3 -> {
-                if (addr != RST_ADDR) push((byte) (toUint(regP) | (soft ? BITMASK_BREAK : 0)));
-            }
+            case 1 -> pushPCH(soft ? 2 : 0, disableStackWrites);
+            case 2 -> pushPCL(soft ? 2 : 0, disableStackWrites);
+            case 3 -> push((byte) (toUint(regP) | (soft ? BITMASK_BREAK : 0)), disableStackWrites);
             case 4 -> regPC = (short) toUint(bus.read(addr));
             case 5 -> {
                 regPC = getAddressFromOperands((byte) regPC, bus.read((short) (toUint(addr) + 1)));
@@ -881,15 +875,31 @@ public class CPU2A03 {
     }
 
     private void pushPCH(int offset) {
-        push(getPage((short) (toUint(regPC) + offset)));
+        pushPCH(offset, false);
+    }
+
+    private void pushPCH(int offset, boolean disableStackWrites) {
+        push(getPage((short) (toUint(regPC) + offset)), disableStackWrites);
     }
 
     private void pushPCL(int offset) {
-        push((byte) ((toUint(regPC) + offset)));
+        pushPCL(offset, false);
+    }
+
+    private void pushPCL(int offset, boolean disableStackWrites) {
+        push((byte) ((toUint(regPC) + offset)), disableStackWrites);
     }
 
     private void push(byte value) {
-        bus.write(getStackAddress(), value);
+        push(value, false);
+    }
+
+    private void push(byte value, boolean disableStackWrites) {
+        if (disableStackWrites) {
+            bus.read(getStackAddress());
+        } else {
+            bus.write(getStackAddress(), value);
+        }
         regSP = (byte) (toUint(regSP) - 1);
     }
 
