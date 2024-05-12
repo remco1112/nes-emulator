@@ -9,6 +9,7 @@ public class NESFrame extends Frame {
 
     public NESFrame(ImageProducer imageProducer, int scale) {
         setLocationByPlatform(true);
+        setUndecorated(true);
         setVisible(true);
         setResizable(false);
         setIgnoreRepaint(true);
