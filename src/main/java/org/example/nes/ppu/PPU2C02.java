@@ -68,15 +68,14 @@ public class PPU2C02 {
         final int cycle = getCycleInline();
         if (line < 240 || line == 261) {
             if (cycle > 0 && cycle <= 256) {
+                handleFetchCycles(cycle);
                 if (line != 261) {
                     producePixel();
                 }
-                handleFetchCycles(cycle);
                 if (cycle == 256) {
                     incrementVVertical();
                 }
             } else if (cycle == 257) {
-                // reloadShifters(); ???
                 resetVHorizontal();
             } else if (cycle > 320 && cycle <= 336) {
                 handleFetchCycles(cycle);
@@ -101,10 +100,10 @@ public class PPU2C02 {
     }
 
     private void producePixel() {
-        short paletteIndex = (short) (((patternLoShifter & 0x80) >> 7)
-                        | (((patternHiShifter & 0x80) >> 7) << 1)
-                        | (((attributeLoShifter & 0x80) >> 7) << 2)
-                        | (((attributeHiShifter & 0x80) >> 7) << 3)
+        short paletteIndex = (short) (((patternLoShifter & 0x8000) >>> 15)
+                        | (((patternHiShifter & 0x8000) >>> 15) << 1)
+                        | (((attributeLoShifter & 0x8000) >>> 15) << 2)
+                        | (((attributeHiShifter & 0x8000) >>> 15) << 3)
                         | (0 << 4));                                 // TODO background/sprite select
 
         if (greyScale) {
@@ -163,8 +162,8 @@ public class PPU2C02 {
     private void reloadShifters() {
         final int vInt = toUint(v);
 
-        patternLoShifter |= patternLo;
-        patternHiShifter |= patternHi;
+        patternLoShifter |= (short) toUint(patternLo);
+        patternHiShifter |= (short) toUint(patternHi);
 
         final int attribute = toUint(at) >>> ((vInt & 2) + ((vInt & 64) == 64 ? 4 : 0));
         attributeLoShifter |= (short) ((attribute & 0b01) == 0b01 ? 0x00ff : 0);
