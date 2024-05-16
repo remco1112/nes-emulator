@@ -41,6 +41,6 @@ public class NESImageProducer extends MemoryImageSource implements PixelConsumer
     }
 
     private boolean isRasterPixel(int pixel) {
-        return pixel % 8 == 0 || (pixel / SCREEN_WIDTH) % 8 == 0;
+        return ((pixel % 8 == 7) && ((pixel / SCREEN_WIDTH) % 2 == 0)) || ((pixel / SCREEN_WIDTH) % 8 == 7) && (pixel % 2 == 0);
     }
 }
