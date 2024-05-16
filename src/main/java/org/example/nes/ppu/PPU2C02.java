@@ -152,7 +152,8 @@ public class PPU2C02 {
 
     private void loadAttribute() {
         final int vInt = toUint(v);
-        at = bus.read((short) (0x23C0 | (vInt & 0x0C00) | ((vInt >>> 4) & 0x38) | ((vInt >> 2) & 0x07)));
+        final byte attributes = bus.read((short) (0x23C0 | (vInt & 0x0C00) | ((vInt >>> 4) & 0x38) | ((vInt >>> 2) & 0x07)));
+        at = (byte) (toUint(attributes) >>> ((vInt & 2) + ((vInt & 64) == 64 ? 4 : 0)));
     }
 
     private void loadTile() {
@@ -160,14 +161,11 @@ public class PPU2C02 {
     }
 
     private void reloadShifters() {
-        final int vInt = toUint(v);
-
         patternLoShifter |= (short) toUint(patternLo);
         patternHiShifter |= (short) toUint(patternHi);
 
-        final int attribute = toUint(at) >>> ((vInt & 2) + ((vInt & 64) == 64 ? 4 : 0));
-        attributeLoShifter |= (short) ((attribute & 0b01) == 0b01 ? 0x00ff : 0);
-        attributeHiShifter |= (short) ((attribute & 0b10) == 0b10 ? 0x00ff : 0);
+        attributeLoShifter = (short) (toUint(attributeLoShifter) | ((at & 0b01) == 0b01 ? 0x00ff : 0));
+        attributeHiShifter = (short) (toUint(attributeHiShifter) | ((at & 0b10) == 0b10 ? 0x00ff : 0));
     }
 
     private void incrementVHorizontal() {
