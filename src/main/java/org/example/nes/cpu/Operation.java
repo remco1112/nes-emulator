@@ -1,6 +1,6 @@
 package org.example.nes.cpu;
 
-public enum Operation {
+enum Operation {
     LDA,
     LDX,
     LDY,

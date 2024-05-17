@@ -7,26 +7,39 @@ import org.example.nes.ppu.PPU2C02;
 import static org.example.nes.mapper.Mapper.addrToString;
 import static org.example.nes.mapper.Mapper.writeToString;
 
-public class CPU2A03Bus implements Bus {
+class CPU2A03Bus implements Bus {
     private final byte[] ram = new byte[0x800];
 
     private final Mapper mapper;
     private final PPU2C02 ppu;
+    private final DMAController dmaController;
 
-    CPU2A03Bus(Mapper mapper, PPU2C02 ppu) {
+    CPU2A03Bus(Mapper mapper, PPU2C02 ppu, DMAController dmaController) {
         this.mapper = mapper;
         this.ppu = ppu;
+        this.dmaController = dmaController;
     }
 
     @Override
     public byte read(short address) {
-        if (mapper.catchCpuRead(address)) {
-            return mapper.readCpu(address);
+        final byte value = handleReadAndNotify(address);
+
+        if (dmaController.haltCPU()) {
+            throw new DMAHaltException();
+        } else {
+            return value;
         }
+    }
+
+    @Override
+    public byte dmaRead(short address) {
         return handleReadAndNotify(address);
     }
 
     private byte handleReadAndNotify(short address) {
+        if (mapper.catchCpuRead(address)) {
+            return mapper.readCpu(address);
+        }
         byte value = handleRead(address);
         mapper.notifyCpuRead(address, value);
         return value;
@@ -85,7 +98,7 @@ public class CPU2A03Bus implements Bus {
 
     private void writeToIo(int addr, byte value) {
         switch (addr % 0x18) {
-            case 0x14 -> ppu.setRegOamDma(value);
+            case 0x14 -> dmaController.requestOamDma(value);
             default -> {
                 // throw new IllegalStateException("Illegal IO register write: " + writeToString(addr, value));
             }

@@ -3,7 +3,7 @@ package org.example.nes.cpu;
 import static org.example.nes.cpu.AddressMode.*;
 import static org.example.nes.cpu.Operation.*;
 
-public enum OpCode {
+enum OpCode {
     BRK_IMP((byte) 0x00, BRK, IMPLIED),
     ORA_XIN((byte) 0x01, ORA, X_INDEXED_INDIRECT),
     ORA_ZPG((byte) 0x05, ORA, ZEROPAGE),

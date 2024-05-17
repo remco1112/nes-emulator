@@ -1,6 +1,6 @@
 package org.example.nes.cpu;
 
-public enum Interrupt {
+enum Interrupt {
     RESET,
     IRQ,
     NMI

@@ -1,6 +1,6 @@
 package org.example.nes.cpu;
 
-public enum AddressMode {
+enum AddressMode {
     ACCUMULATOR(0, 1, "ACC"),
     ABSOLUTE(3, 3, "ABS"),
     ABSOLUTE_X_INDEXED(3, 3, "ABX"),

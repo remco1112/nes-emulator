@@ -16,7 +16,6 @@ public class PPU2C02 {
 
     private byte regOamAddr;
     private byte regOamData;
-    private byte regOamDma;
 
     private boolean w;
     private short t;
@@ -99,6 +98,7 @@ public class PPU2C02 {
         incrementCycleCounter();
     }
 
+    // TODO x-scroll
     private void producePixel() {
         short paletteIndex = (short) (((patternLoShifter & 0x8000) >>> 15)
                         | (((patternHiShifter & 0x8000) >>> 15) << 1)
@@ -394,10 +394,6 @@ public class PPU2C02 {
 
     public void setRegOamData(byte regOamData) {
         this.regOamData = regOamData;
-    }
-
-    public void setRegOamDma(byte regOamDma) {
-        this.regOamDma = regOamDma;
     }
 
     short getV() {

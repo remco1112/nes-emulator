@@ -47,6 +47,7 @@ public class CPU2A03 {
 
     private final Bus bus;
     private final InterruptController interruptionController;
+    private final DMAController dmaController;
 
     private boolean interrupt_irq;
     private boolean interrupt_nmi;
@@ -62,30 +63,18 @@ public class CPU2A03 {
     private byte op0;
     private byte op1;
 
-    CPU2A03(Bus bus) {
-        this(
-                bus,
-                (short) 0,
-                STACK_BASE,
-                (byte) 0,
-                (byte) 0,
-                (byte) 0,
-                (byte) 0,
-                new NoopInterruptController()
-        );
+    public CPU2A03(Mapper mapper, PPU2C02 ppu, InterruptController interruptController) {
+        this(mapper, ppu, interruptController, new DMAController());
+    }
+
+    private CPU2A03(Mapper mapper, PPU2C02 ppu, InterruptController interruptController, DMAController dmaController) {
+        this(new CPU2A03Bus(mapper, ppu, dmaController), (short) 0, interruptController, dmaController);
+        interrupt_reset = true;
+        dmaController.setBus(bus);
     }
 
     CPU2A03(Bus bus, short regPC) {
-        this(
-                bus,
-                regPC,
-                STACK_BASE,
-                (byte) 0,
-                (byte) 0,
-                (byte) 0,
-                (byte) 0,
-                new NoopInterruptController()
-        );
+        this(bus, regPC, new NoopInterruptController());
     }
 
     CPU2A03(Bus bus, short regPC, InterruptController interruptController) {
@@ -97,24 +86,27 @@ public class CPU2A03 {
                 (byte) 0,
                 (byte) 0,
                 (byte) 0,
-                interruptController
+                interruptController,
+                new DMAController()
         );
     }
 
-    public CPU2A03(Mapper mapper, PPU2C02 ppu, InterruptController interruptController) {
+    CPU2A03(Bus bus, short regPC, InterruptController interruptController, DMAController dmaController) {
         this(
-                new CPU2A03Bus(mapper, ppu),
-                (short) 0,
+                bus,
+                regPC,
                 STACK_BASE,
                 (byte) 0,
                 (byte) 0,
                 (byte) 0,
                 (byte) 0,
-                interruptController);
-        interrupt_reset = true;
+                interruptController,
+                dmaController
+        );
     }
 
-    CPU2A03(Bus bus, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP, InterruptController interruptController) {
+
+    CPU2A03(Bus bus, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP, InterruptController interruptController, DMAController dmaController) {
         this.bus = bus;
         this.regPC = regPC;
         this.regSP = regSP;
@@ -123,23 +115,29 @@ public class CPU2A03 {
         this.regY = regY;
         this.regP = regP;
         this.interruptionController = interruptController;
+        this.dmaController = dmaController;
     }
 
     public void tick() {
-        if (cycleInInstruction == 0) {
-            if ((currentInterrupt = getInterrupt()) != null) {
+        try {
+            if (cycleInInstruction == 0) {
+                if ((currentInterrupt = getInterrupt()) != null) {
+                    handleInterrupt();
+                } else {
+                    fetchOperation();
+                }
+            } else if (currentInterrupt != null) {
                 handleInterrupt();
+            } else if (cycleInInstruction - 1 < currentOp.addressMode.cycles) {
+                handleAddressing();
             } else {
-                fetchOperation();
+                handleOperation();
             }
-        } else if (currentInterrupt != null) {
-            handleInterrupt();
-        } else if (cycleInInstruction - 1 < currentOp.addressMode.cycles) {
-            handleAddressing();
-        } else {
-            handleOperation();
+            cycleInInstruction++;
+        } catch (DMAHaltException _) {
+
         }
-        cycleInInstruction++;
+        dmaController.tick();
     }
 
     private void handleInterrupt() {

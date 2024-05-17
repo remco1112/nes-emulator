@@ -1,6 +1,6 @@
 package org.example.nes.cpu;
 
-public class NoopInterruptController implements InterruptController {
+class NoopInterruptController implements InterruptController {
     @Override
     public boolean isReset() {
         return false;
