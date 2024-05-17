@@ -9,6 +9,8 @@ public class MasterClock {
     final CPU2A03 cpu2A03;
     final PPU2C02 ppu2C02;
 
+    int counter = 0;
+
     public MasterClock(Mapper mapper, PixelConsumer pixelConsumer) {
         final NESInterruptController nesInterruptController = new NESInterruptController();
 
@@ -17,7 +19,6 @@ public class MasterClock {
     }
 
     public void start() {
-        int counter = 0;
         long prevTime = System.currentTimeMillis();
         while (true) {
             if (counter == 0) {
@@ -32,11 +33,15 @@ public class MasterClock {
                     throw new RuntimeException(e);
                 }
             }
-            ppu2C02.tick();
-            if (counter % 3 == 0) {
-                cpu2A03.tick();
-            }
-            counter = (counter + 1) % 89341;
+            tick();
         }
+    }
+
+    public void tick() {
+        ppu2C02.tick();
+        if (counter % 3 == 0) {
+            cpu2A03.tick();
+        }
+        counter = (counter + 1) % 89341;
     }
 }

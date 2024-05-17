@@ -119,6 +119,9 @@ public class CPU2A03 {
     }
 
     public void tick() {
+        if (dmaController.tick()) {
+            return;
+        }
         try {
             if (cycleInInstruction == 0) {
                 if ((currentInterrupt = getInterrupt()) != null) {
@@ -137,7 +140,6 @@ public class CPU2A03 {
         } catch (DMAHaltException _) {
 
         }
-        dmaController.tick();
     }
 
     private void handleInterrupt() {

@@ -2,13 +2,14 @@ package org.example.nes.mapper;
 
 import static org.example.nes.UInt.toUint;
 
+// TODO make package-private
 public class NROM implements Mapper {
     private static final int ROM_OFFSET = 0x8000;
 
     private final byte[] pgrRom;
     private final byte[] chrRom;
 
-    NROM(byte[] pgrRom, byte[] chrRom) {
+    public NROM(byte[] pgrRom, byte[] chrRom) {
         this.pgrRom = pgrRom;
         this.chrRom = chrRom;
     }

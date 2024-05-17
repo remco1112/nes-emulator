@@ -166,7 +166,7 @@ enum OpCode {
         this.addressMode = addressMode;
     }
 
-    private static final OpCode[] MAP = new OpCode[0xff];
+    private static final OpCode[] MAP = new OpCode[0x100];
 
     static {
         for (OpCode opCode : OpCode.values()) {

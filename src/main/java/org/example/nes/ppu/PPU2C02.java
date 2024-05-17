@@ -10,6 +10,8 @@ public class PPU2C02 {
     private static final int PX_PER_LINE = 341;
     private static final int CYCLES_PER_FRAME = LINES * PX_PER_LINE;
 
+    private final byte[] oam = new byte[256];
+
     private final Bus bus;
     private final VBlankNotificationReceiver vBlankNotificationReceiver;
     private final PixelConsumer pixelConsumer;
@@ -384,16 +386,17 @@ public class PPU2C02 {
         return regOamAddr;
     }
 
-    public void setRegOamAddr(byte regOamAddr) {
+    public void writeRegOamAddr(byte regOamAddr) {
         this.regOamAddr = regOamAddr;
     }
 
-    public byte getRegOamData() {
-        return regOamData;
+    public byte readRegOamData() {
+        return oam[toUint(regOamAddr)];
     }
 
-    public void setRegOamData(byte regOamData) {
-        this.regOamData = regOamData;
+    public void writeRegOamData(byte data) {
+        oam[toUint(regOamAddr)] = data;
+        regOamAddr++;
     }
 
     short getV() {
@@ -422,5 +425,9 @@ public class PPU2C02 {
 
     void setX(byte x) {
         this.x = x;
+    }
+
+    public byte[] getOam() {
+        return oam;
     }
 }

@@ -22,28 +22,35 @@ class DMAController {
         oamDma = true;
     }
 
-    void tick() {
-        if (halted) {
-            handleOam();
-        }
+    boolean tick() {
+        final boolean result = handleTick();
         canPut = !canPut;
+        return result;
     }
 
-    private void handleOam() {
+    private boolean handleTick() {
+        if(halted) {
+            return handleOam();
+        }
+        return false;
+    }
+
+    private boolean handleOam() {
         if (wantsPut && canPut) {
             bus.write(OAM_DATA, oamData);
-            if ((oamAddr & 0xFF) == 0xFF) {
+            if ((oamAddr & 0xFF) == 0) {
                 oamDma = false;
                 halted = false;
             }
             wantsPut = false;
+            return true;
         } else if (!wantsPut && !canPut) {
             oamData = bus.dmaRead(oamAddr);
-            if ((oamAddr & 0xFF) != 0xFF) {
-                oamAddr++;
-                wantsPut = true;
-            }
+            oamAddr++;
+            wantsPut = true;
+            return true;
         }
+        return false;
     }
 
     boolean haltCPU() {
