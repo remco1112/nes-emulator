@@ -67,7 +67,7 @@ class CPU2A03Bus implements Bus {
     private byte readFromPpu(int addr) {
         return switch (addr % 8) {
             case 2 -> ppu.readRegPpuStatus();
-            case 3 -> ppu.getRegOamAddr();
+            case 3 -> ppu.readRegOamAddr();
             case 4 -> ppu.readRegOamData();
             case 7 -> ppu.readRegPpuData();
             default -> throw new IllegalStateException("Illegal PPU register read at: " + addrToString(addr));

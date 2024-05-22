@@ -5,19 +5,22 @@ import org.example.nes.mapper.Mapper;
 
 import static org.example.nes.UInt.toUint;
 
-public class PPU2C02 {
+public class PPU2C02 implements OAMAccesor {
     private static final int LINES = 262;
     private static final int PX_PER_LINE = 341;
     private static final int CYCLES_PER_FRAME = LINES * PX_PER_LINE;
 
     private final byte[] oam = new byte[256];
+    private final byte[] spritePatterns = new byte[16];
 
     private final Bus bus;
     private final VBlankNotificationReceiver vBlankNotificationReceiver;
     private final PixelConsumer pixelConsumer;
+    private final SpriteEvaluator spriteEvaluator;
 
     private byte regOamAddr;
-    private byte regOamData;
+    private int currentSprite;
+    private short spritePatternTableAddress;
 
     private boolean w;
     private short t;
@@ -38,7 +41,7 @@ public class PPU2C02 {
     private boolean showSp;
 
     private byte emphasis; // BGR
-    private short patternTableAddress;
+    private short backgroundPatternTableAddress;
 
     private byte nt;
     private byte at;
@@ -58,6 +61,7 @@ public class PPU2C02 {
         this.bus = bus;
         this.vBlankNotificationReceiver = vBlankNotificationReceiver;
         this.pixelConsumer = pixelConsumer;
+        this.spriteEvaluator = new SpriteEvaluator(this);
     }
 
     PPU2C02(Bus bus) {
@@ -68,18 +72,22 @@ public class PPU2C02 {
         final int line = getCurrentLine();
         final int cycle = getCycleInline();
         if (line < 240 || line == 261) {
-            if (cycle > 0 && cycle <= 256) {
-                handleFetchCycles(cycle);
+            if (cycle > 0 && cycle < 257) {
+                handleBackgroundFetchCycles(cycle);
                 if (line != 261) {
+                    spriteEvaluator.tick(cycle, line);
                     producePixel();
                 }
                 if (cycle == 256) {
                     incrementVVertical();
                 }
-            } else if (cycle == 257) {
-                resetVHorizontal();
-            } else if (cycle > 320 && cycle <= 336) {
-                handleFetchCycles(cycle);
+            } else if (cycle < 321) {
+                if (cycle == 257) {
+                    resetVHorizontal();
+                }
+                handleSpriteFetchCycles(cycle);
+            } else if (cycle < 337) {
+                handleBackgroundFetchCycles(cycle);
             }
             if (line == 261) {
                 if (cycle == 1) {
@@ -100,19 +108,36 @@ public class PPU2C02 {
         incrementCycleCounter();
     }
 
-    // TODO x-scroll
+    // TODO x-scroll, sprite zero hit, sprite priority, x-flip
     private void producePixel() {
-        short paletteIndex = (short) (((patternLoShifter & 0x8000) >>> 15)
+        short backgroundPaletteIndex = (short) (((patternLoShifter & 0x8000) >>> 15)
                         | (((patternHiShifter & 0x8000) >>> 15) << 1)
                         | (((attributeLoShifter & 0x8000) >>> 15) << 2)
-                        | (((attributeHiShifter & 0x8000) >>> 15) << 3)
-                        | (0 << 4));                                 // TODO background/sprite select
+                        | (((attributeHiShifter & 0x8000) >>> 15) << 3));
 
         if (greyScale) {
-            paletteIndex &= 0x30;
+            backgroundPaletteIndex &= 0x30;
         }
 
-        short pixel = showBg ? bus.read((short) (0x3F00 | paletteIndex)) : 0;
+        short pixel = showBg ? bus.read((short) (0x3F00 | backgroundPaletteIndex)) : 0;
+
+        short spritePaletteIndex = 0;
+
+        for (int i = 7; i >= 0; i--) {
+            final int spriteX = toUint(spriteEvaluator.readSecondaryOam(4 * i + 3));
+            final int offsetX = getCycleInline() - 1 - spriteX;
+            if (offsetX >= 0 && offsetX < 8) {
+                spritePaletteIndex = (short) ((((toUint(spritePatterns[2 * i]) << offsetX) & 0x80) >>> 7)
+                                        | ((((toUint(spritePatterns[2 * i + 1]) << offsetX) & 0x80) >>> 7) << 1)
+                                        | ((toUint(spriteEvaluator.readSecondaryOam(4 * i + 2)) & 0x3) << 2)
+                                        | 0x10);
+            }
+        }
+
+        if (((spritePaletteIndex & 0x3) != 0) && showSp) {
+            pixel = bus.read((short) (0x3F00 | spritePaletteIndex));
+        }
+
         pixelConsumer.onPixel((short) (pixel | (emphasis << 5)));
     }
 
@@ -123,7 +148,7 @@ public class PPU2C02 {
         }
     }
 
-    private void handleFetchCycles(int cycle) {
+    private void handleBackgroundFetchCycles(int cycle) {
         shiftRegisters();
         switch ((cycle - 1) % 8) {
             case 0 -> {
@@ -131,9 +156,21 @@ public class PPU2C02 {
                 loadTile();
             }
             case 2 -> loadAttribute();
-            case 4 -> loadPatternLow();
-            case 6 -> loadPatternHigh();
+            case 4 -> loadBackgroundPatternLow();
+            case 6 -> loadBackgroundPatternHigh();
             case 7 -> incrementVHorizontal();
+        }
+    }
+
+    private void handleSpriteFetchCycles(int cycle) {
+        writeRegOamAddr((byte) 0);
+        switch ((cycle - 1) % 8) {
+            case 0, 2 -> loadTile(); // garbage
+            case 4 -> loadSpritePatternLow();
+            case 6 -> {
+                loadSpritePatternHigh();
+                currentSprite = (currentSprite + 1) % 8;
+            }
         }
     }
 
@@ -144,12 +181,22 @@ public class PPU2C02 {
         attributeLoShifter = (short) (toUint(attributeLoShifter) << 1);
     }
 
-    private void loadPatternHigh() {
-        patternHi = bus.read((short) (toUint(patternTableAddress) + (toUint(nt) << 4) + ((toUint(v) >>> 12) & 0x7) + 8));
+    private void loadBackgroundPatternHigh() {
+        patternHi = bus.read((short) (toUint(backgroundPatternTableAddress) + (toUint(nt) << 4) + ((toUint(v) >>> 12) & 0x7) + 8));
     }
 
-    private void loadPatternLow() {
-        patternLo = bus.read((short) (toUint(patternTableAddress) + (toUint(nt) << 4) + ((toUint(v) >>> 12) & 0x7)));
+    private void loadBackgroundPatternLow() {
+        patternLo = bus.read((short) (toUint(backgroundPatternTableAddress) + (toUint(nt) << 4) + ((toUint(v) >>> 12) & 0x7)));
+    }
+
+    // TODO y-flip
+    private void loadSpritePatternLow() {
+        spritePatterns[2 * currentSprite] = bus.read((short) (toUint(spritePatternTableAddress) + spriteEvaluator.readSecondaryOam(4 * currentSprite + 1) + (getCurrentLine() - spriteEvaluator.readSecondaryOam(4 * currentSprite))));
+    }
+
+    // TODO y-flip
+    private void loadSpritePatternHigh() {
+        spritePatterns[2 * currentSprite + 1] = bus.read((short) (toUint(spritePatternTableAddress) + spriteEvaluator.readSecondaryOam(4 * currentSprite + 1) + 8 + (getCurrentLine() - spriteEvaluator.readSecondaryOam(4 * currentSprite))));
     }
 
     private void loadAttribute() {
@@ -267,7 +314,8 @@ public class PPU2C02 {
         t &= (short) (gh | 0b11110011_11111111);
 
         vRamPpuDataIncDown = (ctrl & 0x4) == 0x4;
-        patternTableAddress = (short) ((ctrl & 0x10) << 8);
+        backgroundPatternTableAddress = (short) ((ctrl & 0x10) << 8);
+        spritePatternTableAddress = (short) ((ctrl & 0x8) << 9);
 
         vBlankNotify = (ctrl & 0x80) == 0x80;
         if (vBlank && vBlankNotify) {
@@ -382,16 +430,28 @@ public class PPU2C02 {
         v = (short) ((toUint(v) + i) % 0x8000);
     }
 
-    public byte getRegOamAddr() {
+    @Override
+    public byte readRegOamAddr() {
         return regOamAddr;
     }
 
+    @Override
     public void writeRegOamAddr(byte regOamAddr) {
         this.regOamAddr = regOamAddr;
     }
 
+    @Override
     public byte readRegOamData() {
+        if (secondaryOamClearCycle()) {
+            return (byte) 0xFF;
+        }
         return oam[toUint(regOamAddr)];
+    }
+
+    private boolean secondaryOamClearCycle() {
+        final int line = getCurrentLine();
+        final int cycle = getCycleInline();
+        return line < 240 && cycle > 0 && cycle < 65;
     }
 
     public void writeRegOamData(byte data) {
