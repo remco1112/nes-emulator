@@ -3,6 +3,7 @@ package org.example.nes.ppu;
 import static org.example.nes.UInt.toUint;
 
 class SpriteEvaluator {
+    // y, tile, attribute, x
     private final byte[] secondaryOam = new byte[32];
     private final OAMAccesor oamAccesor;
 

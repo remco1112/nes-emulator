@@ -10,7 +10,11 @@ public class PPU2C02 implements OAMAccesor {
     private static final int PX_PER_LINE = 341;
     private static final int CYCLES_PER_FRAME = LINES * PX_PER_LINE;
 
+    // y, tile, attribute, x
     private final byte[] oam = new byte[256];
+    // y, tile, attribute, x
+    private final byte[] secondaryOamBuffer = new byte[32];
+    // pattern low, pattern high
     private final byte[] spritePatterns = new byte[16];
 
     private final Bus bus;
@@ -124,12 +128,12 @@ public class PPU2C02 implements OAMAccesor {
         short spritePaletteIndex = 0;
 
         for (int i = 7; i >= 0; i--) {
-            final int spriteX = toUint(spriteEvaluator.readSecondaryOam(4 * i + 3));
+            final int spriteX = toUint(secondaryOamBuffer[4 * i + 3]);
             final int offsetX = getCycleInline() - 1 - spriteX;
             if (offsetX >= 0 && offsetX < 8) {
                 spritePaletteIndex = (short) ((((toUint(spritePatterns[2 * i]) << offsetX) & 0x80) >>> 7)
                                         | ((((toUint(spritePatterns[2 * i + 1]) << offsetX) & 0x80) >>> 7) << 1)
-                                        | ((toUint(spriteEvaluator.readSecondaryOam(4 * i + 2)) & 0x3) << 2)
+                                        | ((toUint(secondaryOamBuffer[4 * i + 2]) & 0x3) << 2)
                                         | 0x10);
             }
         }
@@ -164,7 +168,14 @@ public class PPU2C02 implements OAMAccesor {
 
     private void handleSpriteFetchCycles(int cycle) {
         writeRegOamAddr((byte) 0);
-        switch ((cycle - 1) % 8) {
+        final int relativeCycle = (cycle - 1) % 8;
+
+        if (relativeCycle >= 0 && relativeCycle < 4) {
+            final int secondaryOamIndex = 4 * currentSprite + relativeCycle;
+            secondaryOamBuffer[secondaryOamIndex] = spriteEvaluator.readSecondaryOam(secondaryOamIndex);
+        }
+
+        switch (relativeCycle) {
             case 0, 2 -> loadTile(); // garbage
             case 4 -> loadSpritePatternLow();
             case 6 -> {
