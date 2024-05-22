@@ -50,7 +50,7 @@ class SpriteEvaluator {
                 }
             }
         } else {
-            if (spriteByteFetchCount <= 8 * 4) {
+            if (spriteByteFetchCount <= 8 * 4 && n <= 64) {
                 secondaryOam[secondaryOamIndex] = oamReadBuf;
             }
             if (incrementSecondaryOamIndex) {
