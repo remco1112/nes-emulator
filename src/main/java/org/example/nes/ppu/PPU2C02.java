@@ -112,7 +112,7 @@ public class PPU2C02 implements OAMAccesor {
         incrementCycleCounter();
     }
 
-    // TODO x-scroll, sprite zero hit, sprite priority, x-flip
+    // TODO x-scroll, sprite zero hit, x-flip
     private void producePixel() {
         short backgroundPaletteIndex = (short) (((patternLoShifter & 0x8000) >>> 15)
                         | (((patternHiShifter & 0x8000) >>> 15) << 1)
@@ -126,19 +126,24 @@ public class PPU2C02 implements OAMAccesor {
         short pixel = showBg ? bus.read((short) (0x3F00 | backgroundPaletteIndex)) : 0;
 
         short spritePaletteIndex = 0;
+        boolean spriteInFrontOfBackground = false;
 
         for (int i = 7; i >= 0; i--) {
             final int spriteX = toUint(secondaryOamBuffer[4 * i + 3]);
             final int offsetX = getCycleInline() - 1 - spriteX;
             if (offsetX >= 0 && offsetX < 8) {
-                spritePaletteIndex = (short) ((((toUint(spritePatterns[2 * i]) << offsetX) & 0x80) >>> 7)
+                final short newSpritePaletteIndex = (short) ((((toUint(spritePatterns[2 * i]) << offsetX) & 0x80) >>> 7)
                                         | ((((toUint(spritePatterns[2 * i + 1]) << offsetX) & 0x80) >>> 7) << 1)
                                         | ((toUint(secondaryOamBuffer[4 * i + 2]) & 0x3) << 2)
                                         | 0x10);
+                if ((newSpritePaletteIndex & 0x3) != 0) {
+                    spritePaletteIndex = newSpritePaletteIndex;
+                    spriteInFrontOfBackground = ((secondaryOamBuffer[4 * i + 2] >>> 5) & 0x1) == 0;
+                }
             }
         }
 
-        if (((spritePaletteIndex & 0x3) != 0) && showSp) {
+        if (((spritePaletteIndex & 0x3) != 0) && showSp && (spriteInFrontOfBackground || (backgroundPaletteIndex & 0x3) == 0)) {
             pixel = bus.read((short) (0x3F00 | spritePaletteIndex));
         }
 
