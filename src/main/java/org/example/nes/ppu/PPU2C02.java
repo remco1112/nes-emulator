@@ -214,14 +214,23 @@ public class PPU2C02 implements OAMAccesor {
         patternLo = bus.read((short) (toUint(backgroundPatternTableAddress) + (toUint(nt) << 4) + ((toUint(v) >>> 12) & 0x7)));
     }
 
-    // TODO y-flip
     private void loadSpritePatternLow() {
-        spritePatternsWrite[2 * currentSprite] = bus.read((short) (toUint(spritePatternTableAddress) + (toUint(secondaryOamBuffer[4 * currentSprite + 1]) << 4) + (getCurrentLine() - toUint(secondaryOamBuffer[4 * currentSprite]))));
+        spritePatternsWrite[2 * currentSprite] = bus.read((short) (
+                toUint(spritePatternTableAddress)
+                        + (toUint(secondaryOamBuffer[4 * currentSprite + 1]) << 4)
+                        + (((toUint(secondaryOamBuffer[4 * currentSprite + 2]) >>> 7) & 0x1) == 0
+                            ? (getCurrentLine() - toUint(secondaryOamBuffer[4 * currentSprite]))
+                            : 7 - (getCurrentLine() - toUint(secondaryOamBuffer[4 * currentSprite])))));
     }
 
-    // TODO y-flip
     private void loadSpritePatternHigh() {
-        spritePatternsWrite[2 * currentSprite + 1] = bus.read((short) (toUint(spritePatternTableAddress) + (toUint(secondaryOamBuffer[4 * currentSprite + 1]) << 4) + 8 + (getCurrentLine() - toUint(secondaryOamBuffer[4 * currentSprite]))));
+        spritePatternsWrite[2 * currentSprite + 1] = bus.read((short) (
+                toUint(spritePatternTableAddress)
+                        + (toUint(secondaryOamBuffer[4 * currentSprite + 1]) << 4)
+                        + 8
+                        + (((toUint(secondaryOamBuffer[4 * currentSprite + 2]) >>> 7) & 0x1) == 0
+                            ? (getCurrentLine() - toUint(secondaryOamBuffer[4 * currentSprite]))
+                            : 7 - (getCurrentLine() - toUint(secondaryOamBuffer[4 * currentSprite])))));
     }
 
     private void loadAttribute() {
