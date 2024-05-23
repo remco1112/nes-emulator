@@ -120,7 +120,7 @@ public class PPU2C02 implements OAMAccesor {
         incrementCycleCounter();
     }
 
-    // TODO x-scroll, sprite zero hit, x-flip
+    // TODO x-scroll, sprite zero hit
     private void producePixel() {
         short backgroundPaletteIndex = (short) (((patternLoShifter & 0x8000) >>> 15)
                         | (((patternHiShifter & 0x8000) >>> 15) << 1)
@@ -140,8 +140,9 @@ public class PPU2C02 implements OAMAccesor {
             final int spriteX = toUint(secondaryOamBuffer[4 * i + 3]);
             final int offsetX = getCycleInline() - 1 - spriteX;
             if (offsetX >= 0 && offsetX < 8) {
-                final short newSpritePaletteIndex = (short) ((((toUint(spritePatternsRead[2 * i]) << offsetX) & 0x80) >>> 7)
-                                        | ((((toUint(spritePatternsRead[2 * i + 1]) << offsetX) & 0x80) >>> 7) << 1)
+                final int offsetAfterFlip = ((toUint(secondaryOamBuffer[4 * i + 2]) >>> 6) & 0x1) == 0 ? offsetX : 7 - offsetX;
+                final short newSpritePaletteIndex = (short) ((((toUint(spritePatternsRead[2 * i]) << offsetAfterFlip) & 0x80) >>> 7)
+                                        | ((((toUint(spritePatternsRead[2 * i + 1]) << offsetAfterFlip) & 0x80) >>> 7) << 1)
                                         | ((toUint(secondaryOamBuffer[4 * i + 2]) & 0x3) << 2)
                                         | 0x10);
                 if ((newSpritePaletteIndex & 0x3) != 0) {
