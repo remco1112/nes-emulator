@@ -14,8 +14,6 @@ public class PPU2C02 implements OAMAccesor {
     private final byte[] oam = new byte[256];
     // y, tile, attribute, x
     private final byte[] secondaryOamBuffer = new byte[32];
-    // pattern low, pattern high
-    private final byte[] spritePatterns = new byte[16];
 
     private final Bus bus;
     private final VBlankNotificationReceiver vBlankNotificationReceiver;
@@ -25,6 +23,9 @@ public class PPU2C02 implements OAMAccesor {
     private byte regOamAddr;
     private int currentSprite;
     private short spritePatternTableAddress;
+    // pattern low, pattern high
+    private byte[] spritePatternsWrite = new byte[16];
+    private byte[] spritePatternsRead = new byte[16];
 
     private boolean w;
     private short t;
@@ -76,30 +77,37 @@ public class PPU2C02 implements OAMAccesor {
         final int line = getCurrentLine();
         final int cycle = getCycleInline();
         if (line < 240 || line == 261) {
-            if (cycle > 0 && cycle < 257) {
-                handleBackgroundFetchCycles(cycle);
-                if (line != 261) {
-                    spriteEvaluator.tick(cycle, line);
-                    producePixel();
+            if (cycle > 0) {
+                if (cycle < 257) {
+                    handleBackgroundFetchCycles(cycle);
+                    if (line != 261) {
+                        spriteEvaluator.tick(cycle, line);
+                        producePixel();
+                    }
+                    if (cycle == 256) {
+                        incrementVVertical();
+                    }
+                } else if (cycle < 321) {
+                    if (cycle == 257) {
+                        resetVHorizontal();
+                    }
+                    handleSpriteFetchCycles(cycle);
+                    if (cycle == 320) {
+                        final byte[] spritePatternsRead = this.spritePatternsRead;
+                        this.spritePatternsRead = spritePatternsWrite;
+                        spritePatternsWrite = spritePatternsRead;
+                    }
+                } else if (cycle < 337) {
+                    handleBackgroundFetchCycles(cycle);
                 }
-                if (cycle == 256) {
-                    incrementVVertical();
-                }
-            } else if (cycle < 321) {
-                if (cycle == 257) {
-                    resetVHorizontal();
-                }
-                handleSpriteFetchCycles(cycle);
-            } else if (cycle < 337) {
-                handleBackgroundFetchCycles(cycle);
-            }
-            if (line == 261) {
-                if (cycle == 1) {
-                    vBlank = false;
-                } else if (cycle == 340 && !odd) {
-                    incrementCycleCounter();
-                } else if (cycle > 279 && cycle <= 304) {
-                    resetVVertical();
+                if (line == 261) {
+                    if (cycle == 1) {
+                        vBlank = false;
+                    } else if (cycle == 340 && !odd) {
+                        incrementCycleCounter();
+                    } else if (cycle > 279 && cycle <= 304) {
+                        resetVVertical();
+                    }
                 }
             }
         } else if (line == 241 && cycle == 1) {
@@ -132,8 +140,8 @@ public class PPU2C02 implements OAMAccesor {
             final int spriteX = toUint(secondaryOamBuffer[4 * i + 3]);
             final int offsetX = getCycleInline() - 1 - spriteX;
             if (offsetX >= 0 && offsetX < 8) {
-                final short newSpritePaletteIndex = (short) ((((toUint(spritePatterns[2 * i]) << offsetX) & 0x80) >>> 7)
-                                        | ((((toUint(spritePatterns[2 * i + 1]) << offsetX) & 0x80) >>> 7) << 1)
+                final short newSpritePaletteIndex = (short) ((((toUint(spritePatternsRead[2 * i]) << offsetX) & 0x80) >>> 7)
+                                        | ((((toUint(spritePatternsRead[2 * i + 1]) << offsetX) & 0x80) >>> 7) << 1)
                                         | ((toUint(secondaryOamBuffer[4 * i + 2]) & 0x3) << 2)
                                         | 0x10);
                 if ((newSpritePaletteIndex & 0x3) != 0) {
@@ -207,12 +215,12 @@ public class PPU2C02 implements OAMAccesor {
 
     // TODO y-flip
     private void loadSpritePatternLow() {
-        spritePatterns[2 * currentSprite] = bus.read((short) (toUint(spritePatternTableAddress) + spriteEvaluator.readSecondaryOam(4 * currentSprite + 1) + (getCurrentLine() - spriteEvaluator.readSecondaryOam(4 * currentSprite))));
+        spritePatternsWrite[2 * currentSprite] = bus.read((short) (toUint(spritePatternTableAddress) + (toUint(secondaryOamBuffer[4 * currentSprite + 1]) << 4) + (getCurrentLine() - toUint(secondaryOamBuffer[4 * currentSprite]))));
     }
 
     // TODO y-flip
     private void loadSpritePatternHigh() {
-        spritePatterns[2 * currentSprite + 1] = bus.read((short) (toUint(spritePatternTableAddress) + spriteEvaluator.readSecondaryOam(4 * currentSprite + 1) + 8 + (getCurrentLine() - spriteEvaluator.readSecondaryOam(4 * currentSprite))));
+        spritePatternsWrite[2 * currentSprite + 1] = bus.read((short) (toUint(spritePatternTableAddress) + (toUint(secondaryOamBuffer[4 * currentSprite + 1]) << 4) + 8 + (getCurrentLine() - toUint(secondaryOamBuffer[4 * currentSprite]))));
     }
 
     private void loadAttribute() {
