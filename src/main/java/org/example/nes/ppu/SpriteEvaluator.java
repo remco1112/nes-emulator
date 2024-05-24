@@ -34,13 +34,17 @@ class SpriteEvaluator {
             if (cycle > 64) {
                 byte oamAddress = oamAccesor.readRegOamAddr();
                 if (toUint(oamAddress) - toUint(foundSpriteStartAddr) < 4 && foundSpriteStartAddr != -1) {
-                    spriteByteFetchCount++;
+                    if (spriteByteFetchCount <= 8 * 4 && n < 64) {
+                        spriteByteFetchCount++;
+                    }
                     oamAccesor.writeRegOamAddr((byte) (oamAddress + 1));
                 } else {
                     if (yInRange(line)) {
                         assert toUint(oamAddress) % 4 == 0;
                         foundSpriteStartAddr = oamAddress;
-                        spriteByteFetchCount++;
+                        if (spriteByteFetchCount <= 8 * 4 && n < 64) {
+                            spriteByteFetchCount++;
+                        }
                         oamAccesor.writeRegOamAddr((byte) (oamAddress + 1));
                     } else {
                         oamAccesor.writeRegOamAddr((byte) (oamAddress + 4));
@@ -70,6 +74,6 @@ class SpriteEvaluator {
     }
 
     int getNumberOfSpritesInSecondaryOam() {
-        return Integer.min(spriteByteFetchCount / 4, 8);
+        return spriteByteFetchCount / 4;
     }
 }
