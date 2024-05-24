@@ -141,9 +141,6 @@ public class PPU2C02 implements OAMAccesor {
             final int spriteX = toUint(secondaryOamBuffer[4 * i + 3]);
             final int offsetX = getCycleInline() - 1 - spriteX;
             if (offsetX >= 0 && offsetX < 8) {
-                if(getCycleInline() == 54) {
-                    System.out.println();
-                }
                 final int offsetAfterFlip = ((toUint(secondaryOamBuffer[4 * i + 2]) >>> 6) & 0x1) == 0 ? offsetX : 7 - offsetX;
                 final short newSpritePaletteIndex = (short) ((((toUint(spritePatternsRead[2 * i]) << offsetAfterFlip) & 0x80) >>> 7)
                                         | ((((toUint(spritePatternsRead[2 * i + 1]) << offsetAfterFlip) & 0x80) >>> 7) << 1)
