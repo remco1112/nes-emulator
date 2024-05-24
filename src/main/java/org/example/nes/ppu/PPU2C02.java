@@ -22,6 +22,7 @@ public class PPU2C02 implements OAMAccesor {
 
     private byte regOamAddr;
     private int currentSprite;
+    private int spriteCount;
     private short spritePatternTableAddress;
     // pattern low, pattern high
     private byte[] spritePatternsWrite = new byte[16];
@@ -122,6 +123,9 @@ public class PPU2C02 implements OAMAccesor {
 
     // TODO x-scroll, sprite zero hit
     private void producePixel() {
+        if (getCurrentLine() == 0 & getCycleInline() == 256 && showSp) {
+            System.out.println();
+        }
         short backgroundPaletteIndex = (short) (((patternLoShifter & 0x8000) >>> 15)
                         | (((patternHiShifter & 0x8000) >>> 15) << 1)
                         | (((attributeLoShifter & 0x8000) >>> 15) << 2)
@@ -136,7 +140,7 @@ public class PPU2C02 implements OAMAccesor {
         short spritePaletteIndex = 0;
         boolean spriteInFrontOfBackground = false;
 
-        for (int i = 7; i >= 0; i--) {
+        for (int i = spriteCount - 1; i >= 0; i--) {
             final int spriteX = toUint(secondaryOamBuffer[4 * i + 3]);
             final int offsetX = getCycleInline() - 1 - spriteX;
             if (offsetX >= 0 && offsetX < 8) {
@@ -182,6 +186,7 @@ public class PPU2C02 implements OAMAccesor {
 
     private void handleSpriteFetchCycles(int cycle) {
         writeRegOamAddr((byte) 0);
+        spriteCount = spriteEvaluator.getNumberOfSpritesInSecondaryOam();
         final int relativeCycle = (cycle - 1) % 8;
 
         if (relativeCycle >= 0 && relativeCycle < 4) {

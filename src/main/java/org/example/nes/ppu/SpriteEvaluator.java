@@ -68,4 +68,8 @@ class SpriteEvaluator {
     byte readSecondaryOam(int index) {
         return secondaryOam[index];
     }
+
+    int getNumberOfSpritesInSecondaryOam() {
+        return Integer.min(spriteByteFetchCount / 4, 8);
+    }
 }
