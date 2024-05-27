@@ -14,6 +14,8 @@ class SpriteEvaluator {
     private byte spriteByteFetchCount;
     private boolean incrementSecondaryOamIndex;
 
+    private int cycle;
+
     SpriteEvaluator(OAM oam) {
         this.oam = oam;
     }
@@ -21,18 +23,18 @@ class SpriteEvaluator {
     // TODO 8x16 sprites
     // TODO overflow when oam addr does not start at 0
     // TODO Sprite overflow flag
-    void tick(int cycle, int line) {
-        if (cycle % 2 == 1) {
-            if (cycle == 1) {
+    void tick() {
+        if (cycle % 2 == 0) {
+            if (cycle % 256 == 0) {
                 foundSpriteStartAddr = -1;
                 n = 0;
                 spriteByteFetchCount = 0;
                 secondaryOamIndex = 0;
             }
-            oam.setPullReadsHigh(cycle <= 64);
+            oam.setPullReadsHigh(cycle % 256 < 64);
             incrementSecondaryOamIndex = true;
             oamReadBuf = oam.readRegOamData();
-            if (cycle > 64) {
+            if (cycle % 256 >= 64) {
                 byte oamAddress = oam.readRegOamAddr();
                 if (toUint(oamAddress) - toUint(foundSpriteStartAddr) < 4 && foundSpriteStartAddr != -1) {
                     if (spriteByteFetchCount < 8 * 4 && n < 64) {
@@ -40,7 +42,7 @@ class SpriteEvaluator {
                     }
                     oam.writeRegOamAddr((byte) (oamAddress + 1));
                 } else {
-                    if (yInRange(line)) {
+                    if (yInRange(cycle)) {
                         assert toUint(oamAddress) % 4 == 0;
                         foundSpriteStartAddr = oamAddress;
                         if (spriteByteFetchCount < 8 * 4 && n < 64) {
@@ -63,10 +65,12 @@ class SpriteEvaluator {
                 incrementSecondaryOamIndex = false;
             }
         }
+        cycle = (cycle + 1) % (256 * 240);
     }
 
-    private boolean yInRange(int line) {
+    private boolean yInRange(int cycle) {
         final int y = toUint(oamReadBuf);
+        final int line = cycle / 256;
         return line >= y && line < y + 8;
     }
 
