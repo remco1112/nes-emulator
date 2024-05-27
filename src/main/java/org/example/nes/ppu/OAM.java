@@ -3,9 +3,18 @@ package org.example.nes.ppu;
 import static org.example.nes.UInt.toUint;
 
 public class OAM {
-    private final byte[] oam = new byte[256];
+    private final byte[] oam;
     private byte regOamAddr;
     private boolean pullReadsHigh;
+
+    public OAM() {
+        this(new byte[256]);
+    }
+
+    OAM(byte[] oam) {
+        assert oam.length == 256;
+        this.oam = oam;
+    }
 
     public byte readRegOamData() {
         if (pullReadsHigh) {
