@@ -82,7 +82,7 @@ public class PPU2C02 {
                 if (cycle < 257) {
                     handleBackgroundFetchCycles(cycle);
                     if (line != 261) {
-                        spriteEvaluator.tick(cycle, line);
+                        spriteEvaluator.tick();
                         producePixel();
                     }
                     if (cycle == 256) {

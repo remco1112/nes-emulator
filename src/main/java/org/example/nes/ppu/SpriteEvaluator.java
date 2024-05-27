@@ -27,7 +27,7 @@ class SpriteEvaluator {
         if (cycle % 2 == 0) {
             if (cycle % 256 == 0) {
                 foundSpriteStartAddr = -1;
-                n = 0;
+                n = -1;
                 spriteByteFetchCount = 0;
                 secondaryOamIndex = 0;
             }
@@ -36,12 +36,13 @@ class SpriteEvaluator {
             oamReadBuf = oam.readRegOamData();
             if (cycle % 256 >= 64) {
                 byte oamAddress = oam.readRegOamAddr();
-                if (toUint(oamAddress) - toUint(foundSpriteStartAddr) < 4 && foundSpriteStartAddr != -1) {
+                if (Math.abs(toUint(oamAddress) - toUint(foundSpriteStartAddr)) < 4 && foundSpriteStartAddr != -1) {
                     if (spriteByteFetchCount < 8 * 4 && n < 64) {
                         spriteByteFetchCount++;
                     }
                     oam.writeRegOamAddr((byte) (oamAddress + 1));
                 } else {
+                    n++;
                     if (yInRange(cycle)) {
                         assert toUint(oamAddress) % 4 == 0;
                         foundSpriteStartAddr = oamAddress;
@@ -53,7 +54,6 @@ class SpriteEvaluator {
                         oam.writeRegOamAddr((byte) (oamAddress + 4));
                         incrementSecondaryOamIndex = false;
                     }
-                    n++;
                 }
             }
         } else {
