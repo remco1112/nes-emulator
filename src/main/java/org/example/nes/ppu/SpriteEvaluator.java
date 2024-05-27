@@ -5,7 +5,7 @@ import static org.example.nes.UInt.toUint;
 class SpriteEvaluator {
     // y, tile, attribute, x
     private final byte[] secondaryOam = new byte[32];
-    private final OAMAccesor oamAccesor;
+    private final OAM oam;
 
     private byte oamReadBuf;
     private byte n;
@@ -14,8 +14,8 @@ class SpriteEvaluator {
     private byte spriteByteFetchCount;
     private boolean incrementSecondaryOamIndex;
 
-    SpriteEvaluator(OAMAccesor oamAccesor) {
-        this.oamAccesor = oamAccesor;
+    SpriteEvaluator(OAM oam) {
+        this.oam = oam;
     }
 
     // TODO 8x16 sprites
@@ -29,32 +29,33 @@ class SpriteEvaluator {
                 spriteByteFetchCount = 0;
                 secondaryOamIndex = 0;
             }
+            oam.setPullReadsHigh(cycle <= 64);
             incrementSecondaryOamIndex = true;
-            oamReadBuf = oamAccesor.readRegOamData();
+            oamReadBuf = oam.readRegOamData();
             if (cycle > 64) {
-                byte oamAddress = oamAccesor.readRegOamAddr();
+                byte oamAddress = oam.readRegOamAddr();
                 if (toUint(oamAddress) - toUint(foundSpriteStartAddr) < 4 && foundSpriteStartAddr != -1) {
-                    if (spriteByteFetchCount <= 8 * 4 && n < 64) {
+                    if (spriteByteFetchCount < 8 * 4 && n < 64) {
                         spriteByteFetchCount++;
                     }
-                    oamAccesor.writeRegOamAddr((byte) (oamAddress + 1));
+                    oam.writeRegOamAddr((byte) (oamAddress + 1));
                 } else {
                     if (yInRange(line)) {
                         assert toUint(oamAddress) % 4 == 0;
                         foundSpriteStartAddr = oamAddress;
-                        if (spriteByteFetchCount <= 8 * 4 && n < 64) {
+                        if (spriteByteFetchCount < 8 * 4 && n < 64) {
                             spriteByteFetchCount++;
                         }
-                        oamAccesor.writeRegOamAddr((byte) (oamAddress + 1));
+                        oam.writeRegOamAddr((byte) (oamAddress + 1));
                     } else {
-                        oamAccesor.writeRegOamAddr((byte) (oamAddress + 4));
+                        oam.writeRegOamAddr((byte) (oamAddress + 4));
                         incrementSecondaryOamIndex = false;
                     }
                     n++;
                 }
             }
         } else {
-            if (spriteByteFetchCount <= 8 * 4 && n < 64) {
+            if (spriteByteFetchCount < 8 * 4 && n < 64) { // TODO this condition is broken (see DK peach sprite)
                 secondaryOam[secondaryOamIndex] = oamReadBuf;
             }
             if (incrementSecondaryOamIndex) {

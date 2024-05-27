@@ -5,13 +5,11 @@ import org.example.nes.mapper.Mapper;
 
 import static org.example.nes.UInt.toUint;
 
-public class PPU2C02 implements OAMAccesor {
+public class PPU2C02 {
     private static final int LINES = 262;
     private static final int PX_PER_LINE = 341;
     private static final int CYCLES_PER_FRAME = LINES * PX_PER_LINE;
 
-    // y, tile, attribute, x
-    private final byte[] oam = new byte[256];
     // y, tile, attribute, x
     private final byte[] secondaryOamBuffer = new byte[32];
 
@@ -19,6 +17,7 @@ public class PPU2C02 implements OAMAccesor {
     private final VBlankNotificationReceiver vBlankNotificationReceiver;
     private final PixelConsumer pixelConsumer;
     private final SpriteEvaluator spriteEvaluator;
+    private final OAM oam;
 
     private byte regOamAddr;
     private int currentSprite;
@@ -59,19 +58,20 @@ public class PPU2C02 implements OAMAccesor {
     private short attributeLoShifter;
     private short attributeHiShifter;
 
-    public PPU2C02(Mapper mapper, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer) {
-        this(new PPU2C02Bus(mapper), vBlankNotificationReceiver, pixelConsumer);
+    public PPU2C02(Mapper mapper, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer, OAM oam) {
+        this(new PPU2C02Bus(mapper), vBlankNotificationReceiver, pixelConsumer, oam);
     }
 
-    PPU2C02(Bus bus, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer) {
+    PPU2C02(Bus bus, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer, OAM oam) {
         this.bus = bus;
         this.vBlankNotificationReceiver = vBlankNotificationReceiver;
         this.pixelConsumer = pixelConsumer;
-        this.spriteEvaluator = new SpriteEvaluator(this);
+        this.spriteEvaluator = new SpriteEvaluator(oam);
+        this.oam = oam;
     }
 
     PPU2C02(Bus bus) {
-        this(bus, () -> {}, (_) -> {});
+        this(bus, () -> {}, (_) -> {}, new OAM());
     }
 
     public void tick() {
@@ -182,7 +182,7 @@ public class PPU2C02 implements OAMAccesor {
     }
 
     private void handleSpriteFetchCycles(int cycle) {
-        writeRegOamAddr((byte) 0);
+        oam.writeRegOamAddr((byte) 0);
         spriteCount = spriteEvaluator.getNumberOfSpritesInSecondaryOam();
         final int relativeCycle = (cycle - 1) % 8;
 
@@ -466,35 +466,6 @@ public class PPU2C02 implements OAMAccesor {
         v = (short) ((toUint(v) + i) % 0x8000);
     }
 
-    @Override
-    public byte readRegOamAddr() {
-        return regOamAddr;
-    }
-
-    @Override
-    public void writeRegOamAddr(byte regOamAddr) {
-        this.regOamAddr = regOamAddr;
-    }
-
-    @Override
-    public byte readRegOamData() {
-        if (secondaryOamClearCycle()) {
-            return (byte) 0xFF;
-        }
-        return oam[toUint(regOamAddr)];
-    }
-
-    private boolean secondaryOamClearCycle() {
-        final int line = getCurrentLine();
-        final int cycle = getCycleInline();
-        return line < 240 && cycle > 0 && cycle < 65;
-    }
-
-    public void writeRegOamData(byte data) {
-        oam[toUint(regOamAddr)] = data;
-        regOamAddr++;
-    }
-
     short getV() {
         return v;
     }
@@ -521,9 +492,5 @@ public class PPU2C02 implements OAMAccesor {
 
     void setX(byte x) {
         this.x = x;
-    }
-
-    public byte[] getOam() {
-        return oam;
     }
 }

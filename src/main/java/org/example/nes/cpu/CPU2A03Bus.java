@@ -2,6 +2,7 @@ package org.example.nes.cpu;
 
 import org.example.nes.Bus;
 import org.example.nes.mapper.Mapper;
+import org.example.nes.ppu.OAM;
 import org.example.nes.ppu.PPU2C02;
 
 import static org.example.nes.mapper.Mapper.addrToString;
@@ -13,8 +14,10 @@ class CPU2A03Bus implements Bus {
     private final Mapper mapper;
     private final PPU2C02 ppu;
     private final DMAController dmaController;
+    private final OAM oam;
 
-    CPU2A03Bus(Mapper mapper, PPU2C02 ppu, DMAController dmaController) {
+    CPU2A03Bus(Mapper mapper, PPU2C02 ppu, DMAController dmaController, OAM oam) {
+        this.oam = oam;
         this.mapper = mapper;
         this.ppu = ppu;
         this.dmaController = dmaController;
@@ -67,8 +70,8 @@ class CPU2A03Bus implements Bus {
     private byte readFromPpu(int addr) {
         return switch (addr % 8) {
             case 2 -> ppu.readRegPpuStatus();
-            case 3 -> ppu.readRegOamAddr();
-            case 4 -> ppu.readRegOamData();
+            case 3 -> oam.readRegOamAddr();
+            case 4 -> oam.readRegOamData();
             case 7 -> ppu.readRegPpuData();
             default -> throw new IllegalStateException("Illegal PPU register read at: " + addrToString(addr));
         };
@@ -87,8 +90,8 @@ class CPU2A03Bus implements Bus {
         switch (addr % 8) {
             case 0 -> ppu.writeRegPpuCtrl(value);
             case 1 -> ppu.writeRegPpuMask(value);
-            case 3 -> ppu.writeRegOamAddr(value);
-            case 4 -> ppu.writeRegOamData(value);
+            case 3 -> oam.writeRegOamAddr(value);
+            case 4 -> oam.writeRegOamData(value);
             case 5 -> ppu.writeRegPpuScroll(value);
             case 6 -> ppu.writeRegPpuAddr(value);
             case 7 -> ppu.writeRegPpuData(value);

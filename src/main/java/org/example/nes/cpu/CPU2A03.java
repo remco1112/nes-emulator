@@ -2,6 +2,7 @@ package org.example.nes.cpu;
 
 import org.example.nes.Bus;
 import org.example.nes.mapper.Mapper;
+import org.example.nes.ppu.OAM;
 import org.example.nes.ppu.PPU2C02;
 
 import static org.example.nes.UInt.toUint;
@@ -63,12 +64,12 @@ public class CPU2A03 {
     private byte op0;
     private byte op1;
 
-    public CPU2A03(Mapper mapper, PPU2C02 ppu, InterruptController interruptController) {
-        this(mapper, ppu, interruptController, new DMAController());
+    public CPU2A03(Mapper mapper, PPU2C02 ppu, InterruptController interruptController, OAM oam) {
+        this(mapper, ppu, interruptController, new DMAController(), oam);
     }
 
-    private CPU2A03(Mapper mapper, PPU2C02 ppu, InterruptController interruptController, DMAController dmaController) {
-        this(new CPU2A03Bus(mapper, ppu, dmaController), (short) 0, interruptController, dmaController);
+    private CPU2A03(Mapper mapper, PPU2C02 ppu, InterruptController interruptController, DMAController dmaController, OAM oam) {
+        this(new CPU2A03Bus(mapper, ppu, dmaController, oam), (short) 0, interruptController, dmaController);
         interrupt_reset = true;
         dmaController.setBus(bus);
     }

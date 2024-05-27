@@ -7,10 +7,17 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class DMATest {
-    private static final byte[] DMA_TEST_PROGRAM = new byte[]{
-            (byte) 0xA9, // LDA_IMM
+    private static final byte[] DMA_TEST_PROGRAM = new byte[] {
+            (byte) 0xA2, // LDX_IMM
             (byte) 0x90, // data address in rom + rom offset
-            (byte) 0x8D, // STA_ABS
+            (byte) 0xAD, // LDA_ABS
+            (byte) 0x02, // PPU status register lb
+            (byte) 0x20, // PPU status register hb
+            (byte) 0x29, // AND_IMM
+            (byte) 0x80, // PPU status vblank flag
+            (byte) 0xf0, // BEQ_REL
+            (byte) 0xF9, // -7 (repeat ppu status check)
+            (byte) 0x8e, // STX_ABS
             (byte) 0x14, // DMA register lb
             (byte) 0x40, // DMA register hb
             (byte) 0xD0, // BNE_REL
@@ -37,10 +44,10 @@ public class DMATest {
         final MasterClock clock = new MasterClock(mapper, (_) -> {
         });
 
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 85000; i++) {
             clock.tick();
         }
 
-        assertArrayEquals(OAM_CONTENT, clock.ppu2C02.getOam());
+        assertArrayEquals(OAM_CONTENT, clock.oam.createSnapshot());
     }
 }

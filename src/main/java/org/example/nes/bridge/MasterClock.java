@@ -2,20 +2,23 @@ package org.example.nes.bridge;
 
 import org.example.nes.cpu.CPU2A03;
 import org.example.nes.mapper.Mapper;
+import org.example.nes.ppu.OAM;
 import org.example.nes.ppu.PPU2C02;
 import org.example.nes.ppu.PixelConsumer;
 
 public class MasterClock {
     final CPU2A03 cpu2A03;
     final PPU2C02 ppu2C02;
+    final OAM oam;
 
     int counter = 0;
 
     public MasterClock(Mapper mapper, PixelConsumer pixelConsumer) {
         final NESInterruptController nesInterruptController = new NESInterruptController();
+        this.oam = new OAM();
 
-        this.ppu2C02 = new PPU2C02(mapper, nesInterruptController, pixelConsumer);
-        this.cpu2A03 = new CPU2A03(mapper, ppu2C02, nesInterruptController);
+        this.ppu2C02 = new PPU2C02(mapper, nesInterruptController, pixelConsumer, oam);
+        this.cpu2A03 = new CPU2A03(mapper, ppu2C02, nesInterruptController, oam);
     }
 
     public void start() {
