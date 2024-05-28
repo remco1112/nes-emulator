@@ -23,6 +23,11 @@ public class NESFrame extends Frame {
     }
 
     @Override
+    public void update(Graphics g) {
+        paint(g);
+    }
+
+    @Override
     public void paint(Graphics g) {
         super.paint(g);
         g.drawImage(image, 0, 0, getWidth(), getHeight(), this);
