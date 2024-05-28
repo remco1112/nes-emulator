@@ -8,10 +8,10 @@ class SpriteEvaluator {
     private final OAM oam;
 
     private byte oamReadBuf;
-    private byte n;
-    private byte secondaryOamIndex;
+    private byte spritesEvaluated;
+    private byte spritesFound;
+    private byte secondaryOamCounter;
     private byte foundSpriteStartAddr;
-    private byte spriteByteFetchCount;
     private boolean incrementSecondaryOamIndex;
 
     private int cycle;
@@ -27,27 +27,25 @@ class SpriteEvaluator {
         if (cycle % 2 == 0) {
             if (cycle % 256 == 0) {
                 foundSpriteStartAddr = -1;
-                n = -1;
-                spriteByteFetchCount = 0;
-                secondaryOamIndex = 0;
+                spritesEvaluated = -1;
+                spritesFound = 0;
+                secondaryOamCounter = 0;
             }
             oam.setPullReadsHigh(cycle % 256 < 64);
             incrementSecondaryOamIndex = true;
             oamReadBuf = oam.readRegOamData();
             if (cycle % 256 >= 64) {
                 byte oamAddress = oam.readRegOamAddr();
-                if (Math.abs(toUint(oamAddress) - toUint(foundSpriteStartAddr)) < 4 && foundSpriteStartAddr != -1) {
-                    if (spriteByteFetchCount < 8 * 4 && n < 64) {
-                        spriteByteFetchCount++;
-                    }
+                final int offsetFromFoundSprite = toUint(oamAddress) - toUint(foundSpriteStartAddr);
+                if (offsetFromFoundSprite > 0 && offsetFromFoundSprite < 4 && foundSpriteStartAddr != -1) {
                     oam.writeRegOamAddr((byte) (oamAddress + 1));
                 } else {
-                    n++;
+                    spritesEvaluated++;
                     if (yInRange(cycle)) {
                         assert toUint(oamAddress) % 4 == 0;
                         foundSpriteStartAddr = oamAddress;
-                        if (spriteByteFetchCount < 8 * 4 && n < 64) {
-                            spriteByteFetchCount++;
+                        if (spritesFound < 8 && spritesEvaluated < 64) {
+                            spritesFound++;
                         }
                         oam.writeRegOamAddr((byte) (oamAddress + 1));
                     } else {
@@ -57,11 +55,11 @@ class SpriteEvaluator {
                 }
             }
         } else {
-            if (spriteByteFetchCount < 8 * 4 && n < 64) { // TODO this condition is broken (see DK peach sprite)
-                secondaryOam[secondaryOamIndex] = oamReadBuf;
+            if (secondaryOamCounter < 64 && spritesEvaluated < 64) {
+                secondaryOam[secondaryOamCounter % 32] = oamReadBuf;
             }
             if (incrementSecondaryOamIndex) {
-                secondaryOamIndex = (byte) ((secondaryOamIndex + 1) % 32);
+                secondaryOamCounter++;
                 incrementSecondaryOamIndex = false;
             }
         }
@@ -79,6 +77,6 @@ class SpriteEvaluator {
     }
 
     int getNumberOfSpritesInSecondaryOam() {
-        return spriteByteFetchCount / 4;
+        return spritesFound;
     }
 }
