@@ -1,7 +1,6 @@
 package org.example.nes.ppu;
 
 import com.pholser.junit.quickcheck.Property;
-import com.pholser.junit.quickcheck.When;
 import com.pholser.junit.quickcheck.generator.Size;
 import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
 import org.junit.runner.RunWith;
@@ -15,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class SpriteEvaluatorTest {
 
     @Property
-    public void secondaryOamContentsCorrectForEachLine(@When(seed = -4308380896438925083L) @Size(min = 256, max = 256) ArrayList<Byte> oamList) {
+    public void secondaryOamContentsCorrectForEachLine(@Size(min = 256, max = 256) ArrayList<Byte> oamList) {
         final Byte[] boxedOam = oamList.toArray(new Byte[256]);
         final byte[] oamdata = new byte[256];
         for (int i = 0; i < 256; i++) {
