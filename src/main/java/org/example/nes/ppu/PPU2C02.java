@@ -122,12 +122,11 @@ public class PPU2C02 {
         incrementCycleCounter();
     }
 
-    // TODO x-scroll
     private void producePixel() {
-        short backgroundPaletteIndex = (short) (showBg ? (((patternLoShifter & 0x8000) >>> 15)
-                        | (((patternHiShifter & 0x8000) >>> 15) << 1)
-                        | (((attributeLoShifter & 0x8000) >>> 15) << 2)
-                        | (((attributeHiShifter & 0x8000) >>> 15) << 3)) : 0);
+        short backgroundPaletteIndex = (short) (showBg ? ((((patternLoShifter << toUint(x)) & 0x8000) >>> 15)
+                        | ((((patternHiShifter << toUint(x)) & 0x8000) >>> 15) << 1)
+                        | ((((attributeLoShifter << toUint(x)) & 0x8000) >>> 15) << 2)
+                        | ((((attributeHiShifter << toUint(x)) & 0x8000) >>> 15) << 3)) : 0);
 
         if (greyScale) {
             backgroundPaletteIndex &= 0x30;
