@@ -19,7 +19,6 @@ public class PPU2C02 {
     private final SpriteEvaluator spriteEvaluator;
     private final OAM oam;
 
-    private byte regOamAddr;
     private int currentSprite;
     private int spriteCount;
     private short spritePatternTableAddress;
@@ -44,6 +43,7 @@ public class PPU2C02 {
     private boolean showSpLeft;
     private boolean showBg;
     private boolean showSp;
+    private boolean spriteZeroHit;
 
     private byte emphasis; // BGR
     private short backgroundPatternTableAddress;
@@ -113,6 +113,7 @@ public class PPU2C02 {
             }
         } else if (line == 241 && cycle == 1) {
             vBlank = true;
+            spriteZeroHit = false;
             if (vBlankNotify) {
                 vBlankNotificationReceiver.onPpuVBlank();
             }
@@ -121,21 +122,21 @@ public class PPU2C02 {
         incrementCycleCounter();
     }
 
-    // TODO x-scroll, sprite zero hit
+    // TODO x-scroll
     private void producePixel() {
-        short backgroundPaletteIndex = (short) (((patternLoShifter & 0x8000) >>> 15)
+        short backgroundPaletteIndex = (short) (showBg ? (((patternLoShifter & 0x8000) >>> 15)
                         | (((patternHiShifter & 0x8000) >>> 15) << 1)
                         | (((attributeLoShifter & 0x8000) >>> 15) << 2)
-                        | (((attributeHiShifter & 0x8000) >>> 15) << 3));
+                        | (((attributeHiShifter & 0x8000) >>> 15) << 3)) : 0);
 
         if (greyScale) {
             backgroundPaletteIndex &= 0x30;
         }
 
-        short pixel = showBg ? bus.read((short) (0x3F00 | backgroundPaletteIndex)) : 0;
+        short pixel = bus.read((short) (0x3F00 | backgroundPaletteIndex));
 
         short spritePaletteIndex = 0;
-        boolean spriteInFrontOfBackground = false;
+        int spriteIndex = -1;
 
         for (int i = spriteCount - 1; i >= 0; i--) {
             final int spriteX = toUint(secondaryOamBuffer[4 * i + 3]);
@@ -148,13 +149,20 @@ public class PPU2C02 {
                                         | 0x10);
                 if ((newSpritePaletteIndex & 0x3) != 0) {
                     spritePaletteIndex = newSpritePaletteIndex;
-                    spriteInFrontOfBackground = ((secondaryOamBuffer[4 * i + 2] >>> 5) & 0x1) == 0;
+                    spriteIndex = i;
                 }
             }
         }
 
-        if (((spritePaletteIndex & 0x3) != 0) && showSp && (spriteInFrontOfBackground || (backgroundPaletteIndex & 0x3) == 0)) {
-            pixel = bus.read((short) (0x3F00 | spritePaletteIndex));
+        if (((spritePaletteIndex & 0x3) != 0) && showSp) {
+            assert spriteIndex != -1;
+            final boolean spriteInFrontOfBackground = ((secondaryOamBuffer[4 * spriteIndex + 2] >>> 5) & 0x1) == 0;
+            if (spriteInFrontOfBackground || (backgroundPaletteIndex & 0x3) == 0) {
+                pixel = bus.read((short) (0x3F00 | spritePaletteIndex));
+            }
+            if (spriteIndex == 0 && (backgroundPaletteIndex & 0x3) != 0) {
+                spriteZeroHit = true;
+            }
         }
 
         pixelConsumer.onPixel((short) (pixel | (emphasis << 5)));
@@ -371,9 +379,9 @@ public class PPU2C02 {
     }
 
     // TODO: Race Condition Warning: Reading PPUSTATUS within two cycles of the start of vertical blank will return 0 in bit 7 but clear the latch anyway, causing NMI to not occur that frame.
-    // TODO: Sprite 0 and overflow
+    // TODO: overflow
     public byte readRegPpuStatus() {
-        final byte currentStatus = (byte) (vBlank ? 0x80 : 0);
+        final byte currentStatus = (byte) ((vBlank ? 0x80 : 0) | (spriteZeroHit ? 0x40 : 0));
         clearWrite();
         clearVBlank();
         return currentStatus;
