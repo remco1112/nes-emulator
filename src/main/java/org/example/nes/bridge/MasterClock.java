@@ -24,18 +24,18 @@ public class MasterClock {
 
     public void start() {
         long prevTime = System.nanoTime();
-        while (true) {
+        while (!Thread.interrupted()) {
             if (counter == 0) {
                 long curTime = System.nanoTime();
-                try {
                     final long sleepTime = 16_666_666L - (curTime - prevTime);
-                    prevTime = curTime;
                     if (sleepTime > 0) {
-                        Thread.sleep(sleepTime / 1_000_000, (int) (sleepTime % 1_000_000));
+                        try {
+                            Thread.sleep(sleepTime / 1_000_000, (int) (sleepTime % 1_000_000));
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
                     }
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                    prevTime = System.nanoTime();
             }
             tick();
         }
