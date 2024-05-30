@@ -22,15 +22,15 @@ public class MasterClock {
     }
 
     public void start() {
-        long prevTime = System.currentTimeMillis();
+        long prevTime = System.nanoTime();
         while (true) {
             if (counter == 0) {
-                long curTime = System.currentTimeMillis();
+                long curTime = System.nanoTime();
                 try {
-                    final long sleepTime = 17 - (curTime - prevTime);
+                    final long sleepTime = 16_666_666L - (curTime - prevTime);
                     prevTime = curTime;
                     if (sleepTime > 0) {
-                        Thread.sleep(sleepTime);
+                        Thread.sleep(sleepTime / 1_000_000, (int) (sleepTime % 1_000_000));
                     }
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
