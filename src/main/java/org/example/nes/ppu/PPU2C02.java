@@ -15,7 +15,6 @@ public class PPU2C02 {
 
     private final Bus bus;
     private final VBlankNotificationReceiver vBlankNotificationReceiver;
-    private final PixelConsumer pixelConsumer;
     private final SpriteEvaluator spriteEvaluator;
     private final OAM oam;
 
@@ -58,32 +57,32 @@ public class PPU2C02 {
     private short attributeLoShifter;
     private short attributeHiShifter;
 
-    public PPU2C02(Mapper mapper, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer, OAM oam) {
-        this(new PPU2C02Bus(mapper), vBlankNotificationReceiver, pixelConsumer, oam);
+    public PPU2C02(Mapper mapper, VBlankNotificationReceiver vBlankNotificationReceiver, OAM oam) {
+        this(new PPU2C02Bus(mapper), vBlankNotificationReceiver, oam);
     }
 
-    PPU2C02(Bus bus, VBlankNotificationReceiver vBlankNotificationReceiver, PixelConsumer pixelConsumer, OAM oam) {
+    PPU2C02(Bus bus, VBlankNotificationReceiver vBlankNotificationReceiver, OAM oam) {
         this.bus = bus;
         this.vBlankNotificationReceiver = vBlankNotificationReceiver;
-        this.pixelConsumer = pixelConsumer;
         this.spriteEvaluator = new SpriteEvaluator(oam);
         this.oam = oam;
     }
 
     PPU2C02(Bus bus) {
-        this(bus, () -> {}, (_) -> {}, new OAM());
+        this(bus, () -> {}, new OAM());
     }
 
-    public void tick() {
+    public short tick() {
         final int line = getCurrentLine();
         final int cycle = getCycleInline();
+        short pixel = -1;
         if (line < 240 || line == 261) {
             if (cycle > 0) {
                 if (cycle < 257) {
                     handleBackgroundFetchCycles(cycle);
                     if (line != 261) {
                         spriteEvaluator.tick();
-                        producePixel();
+                        pixel = producePixel();
                     }
                     if (cycle == 256) {
                         incrementVVertical();
@@ -120,9 +119,10 @@ public class PPU2C02 {
         }
 
         incrementCycleCounter();
+        return pixel;
     }
 
-    private void producePixel() {
+    private short producePixel() {
         short backgroundPaletteIndex = (short) (showBg ? ((((patternLoShifter << toUint(x)) & 0x8000) >>> 15)
                         | ((((patternHiShifter << toUint(x)) & 0x8000) >>> 15) << 1)
                         | ((((attributeLoShifter << toUint(x)) & 0x8000) >>> 15) << 2)
@@ -164,7 +164,7 @@ public class PPU2C02 {
             }
         }
 
-        pixelConsumer.onPixel((short) (pixel | (emphasis << 5)));
+        return (short) (pixel | (emphasis << 5));
     }
 
     private void incrementCycleCounter() {

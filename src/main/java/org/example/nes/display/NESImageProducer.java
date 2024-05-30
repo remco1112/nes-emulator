@@ -1,7 +1,5 @@
 package org.example.nes.display;
 
-import org.example.nes.ppu.PixelConsumer;
-
 import java.awt.image.ColorModel;
 import java.awt.image.MemoryImageSource;
 

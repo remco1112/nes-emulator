@@ -1,4 +1,4 @@
-package org.example.nes.ppu;
+package org.example.nes.display;
 
 
 public interface PixelConsumer {
