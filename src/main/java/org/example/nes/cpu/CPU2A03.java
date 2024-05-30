@@ -46,7 +46,7 @@ public class CPU2A03 {
     private byte regY;
     private byte regP;
 
-    private final Bus bus;
+    private final CPUBus bus;
     private final InterruptController interruptionController;
     private final DMAController dmaController;
 
@@ -74,11 +74,11 @@ public class CPU2A03 {
         dmaController.setBus(bus);
     }
 
-    CPU2A03(Bus bus, short regPC) {
+    CPU2A03(CPUBus bus, short regPC) {
         this(bus, regPC, new NoopInterruptController());
     }
 
-    CPU2A03(Bus bus, short regPC, InterruptController interruptController) {
+    CPU2A03(CPUBus bus, short regPC, InterruptController interruptController) {
         this(
                 bus,
                 regPC,
@@ -92,7 +92,7 @@ public class CPU2A03 {
         );
     }
 
-    CPU2A03(Bus bus, short regPC, InterruptController interruptController, DMAController dmaController) {
+    CPU2A03(CPUBus bus, short regPC, InterruptController interruptController, DMAController dmaController) {
         this(
                 bus,
                 regPC,
@@ -107,7 +107,7 @@ public class CPU2A03 {
     }
 
 
-    CPU2A03(Bus bus, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP, InterruptController interruptController, DMAController dmaController) {
+    CPU2A03(CPUBus bus, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP, InterruptController interruptController, DMAController dmaController) {
         this.bus = bus;
         this.regPC = regPC;
         this.regSP = regSP;

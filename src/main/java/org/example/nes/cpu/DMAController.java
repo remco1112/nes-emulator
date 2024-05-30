@@ -1,13 +1,11 @@
 package org.example.nes.cpu;
 
-import org.example.nes.Bus;
-
 import static org.example.nes.UInt.toUint;
 
 class DMAController {
     private static final short OAM_DATA = 0x2004;
 
-    private Bus bus;
+    private CPUBus bus;
 
     private boolean canPut;
     private boolean wantsPut;
@@ -61,7 +59,7 @@ class DMAController {
         return false;
     }
 
-    public void setBus(Bus bus) {
+    public void setBus(CPUBus bus) {
         this.bus = bus;
     }
 }

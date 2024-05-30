@@ -1,6 +1,5 @@
 package org.example.nes.cpu;
 
-import org.example.nes.Bus;
 import org.example.nes.mapper.Mapper;
 import org.example.nes.ppu.OAM;
 import org.example.nes.ppu.PPU2C02;
@@ -8,7 +7,7 @@ import org.example.nes.ppu.PPU2C02;
 import static org.example.nes.mapper.Mapper.addrToString;
 import static org.example.nes.mapper.Mapper.writeToString;
 
-class CPU2A03Bus implements Bus {
+class CPU2A03Bus implements CPUBus {
     private final byte[] ram = new byte[0x800];
 
     private final Mapper mapper;

@@ -1,8 +1,6 @@
 package org.example.nes.cpu;
 
-import org.example.nes.Bus;
-
-class RAMBus implements Bus {
+class RAMBus implements CPUBus {
     private static final int RAM_SIZE = 0x10000;
 
     private final byte[] ram;
