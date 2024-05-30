@@ -1,9 +1,10 @@
 package org.example.nes.ppu;
 
-import org.example.nes.Bus;
-import org.example.nes.mapper.Mapper;
+import org.example.nes.bus.Bus;
+import org.example.nes.bus.BusConfiguration;
+import org.example.nes.ppu.bus.PPU2C02Bus;
 
-import static org.example.nes.UInt.toUint;
+import static org.example.nes.utils.UInt.toUint;
 
 public class PPU2C02 {
     private static final int LINES = 262;
@@ -16,7 +17,7 @@ public class PPU2C02 {
     private final Bus bus;
     private final VBlankNotificationReceiver vBlankNotificationReceiver;
     private final SpriteEvaluator spriteEvaluator;
-    private final OAM oam;
+    public final OAM oam; // todo fix visibility
 
     private int currentSprite;
     private int spriteCount;
@@ -57,19 +58,19 @@ public class PPU2C02 {
     private short attributeLoShifter;
     private short attributeHiShifter;
 
-    public PPU2C02(Mapper mapper, VBlankNotificationReceiver vBlankNotificationReceiver, OAM oam) {
-        this(new PPU2C02Bus(mapper), vBlankNotificationReceiver, oam);
+    public PPU2C02(BusConfiguration mapperBusConfiguration, VBlankNotificationReceiver vBlankNotificationReceiver) {
+        this(new PPU2C02Bus(mapperBusConfiguration), vBlankNotificationReceiver);
     }
 
-    PPU2C02(Bus bus, VBlankNotificationReceiver vBlankNotificationReceiver, OAM oam) {
+    PPU2C02(Bus bus, VBlankNotificationReceiver vBlankNotificationReceiver) {
         this.bus = bus;
         this.vBlankNotificationReceiver = vBlankNotificationReceiver;
+        this.oam = new OAM();
         this.spriteEvaluator = new SpriteEvaluator(oam);
-        this.oam = oam;
     }
 
     PPU2C02(Bus bus) {
-        this(bus, () -> {}, new OAM());
+        this(bus, () -> {});
     }
 
     public short tick() {
@@ -377,6 +378,22 @@ public class PPU2C02 {
         emphasis = (byte) ((regPpuMask & 0xE0) >>> 5);
     }
 
+    public byte readRegOamAddr() {
+        return oam.readRegOamAddr();
+    }
+
+    public void writeRegOamAddr(byte regOamAddr) {
+        oam.writeRegOamAddr(regOamAddr);
+    }
+
+    public byte readRegOamData() {
+        return oam.readRegOamData();
+    }
+
+    public void writeRegOamData(byte data) {
+        oam.writeRegOamData(data);
+    }
+
     // TODO: Race Condition Warning: Reading PPUSTATUS within two cycles of the start of vertical blank will return 0 in bit 7 but clear the latch anyway, causing NMI to not occur that frame.
     // TODO: overflow
     public byte readRegPpuStatus() {
@@ -450,7 +467,7 @@ public class PPU2C02 {
     }
 
     public byte readRegPpuData() {
-        if (PPU2C02Bus.isPaletteRamAddress(v)) {
+        if (toUint(v) >= 0x3F00 && toUint(v) <= 0x3FFF) {
             ppuDataReadBuf = bus.read(v); // TODO: storing palette ram value in buffer is not correct but good enough for now
             return ppuDataReadBuf;
         }

@@ -48,6 +48,6 @@ public class DMATest {
             clock.tick();
         }
 
-        assertArrayEquals(OAM_CONTENT, clock.oam.createSnapshot());
+        assertArrayEquals(OAM_CONTENT, clock.ppu2C02.oam.createSnapshot());
     }
 }

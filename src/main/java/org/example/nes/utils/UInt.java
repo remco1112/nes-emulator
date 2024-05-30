@@ -1,4 +1,4 @@
-package org.example.nes;
+package org.example.nes.utils;
 
 public final class UInt {
 

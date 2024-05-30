@@ -1,11 +1,14 @@
-package org.example.nes.cpu;
+package org.example.nes.cpu.bus;
 
-import static org.example.nes.UInt.toUint;
+import org.example.nes.bus.Bus;
+import org.example.nes.bus.ReadListener;
 
-class DMAController {
+import static org.example.nes.utils.UInt.toUint;
+
+public class DMAController implements ReadListener {
     private static final short OAM_DATA = 0x2004;
 
-    private CPUBus bus;
+    private Bus bus;
 
     private boolean canPut;
     private boolean wantsPut;
@@ -20,7 +23,7 @@ class DMAController {
         oamDma = true;
     }
 
-    boolean tick() {
+    public boolean tick() {
         final boolean result = handleTick();
         canPut = !canPut;
         return result;
@@ -43,7 +46,7 @@ class DMAController {
             wantsPut = false;
             return true;
         } else if (!wantsPut && !canPut) {
-            oamData = bus.dmaRead(oamAddr);
+            oamData = bus.read(oamAddr);
             oamAddr++;
             wantsPut = true;
             return true;
@@ -59,7 +62,14 @@ class DMAController {
         return false;
     }
 
-    public void setBus(CPUBus bus) {
+    public void setBus(Bus bus) {
         this.bus = bus;
+    }
+
+    @Override
+    public void onRead(short address, byte value) {
+        if (!halted && haltCPU()) {
+            throw new DMAHaltException();
+        }
     }
 }

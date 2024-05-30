@@ -1,6 +1,7 @@
-package org.example.nes;
+package org.example.nes.bus;
 
-public interface Bus {
+public interface Memory {
+    int getSize();
 
     byte read(short address);
 

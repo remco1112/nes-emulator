@@ -1,6 +1,8 @@
 package org.example.nes.cpu;
 
-class RAMBus implements CPUBus {
+import org.example.nes.bus.Bus;
+
+class RAMBus implements Bus {
     private static final int RAM_SIZE = 0x10000;
 
     private final byte[] ram;
@@ -22,5 +24,10 @@ class RAMBus implements CPUBus {
     @Override
     public void write(short address, byte value) {
         ram[Short.toUnsignedInt(address)] = value;
+    }
+
+    @Override
+    public int getSize() {
+        return RAM_SIZE;
     }
 }

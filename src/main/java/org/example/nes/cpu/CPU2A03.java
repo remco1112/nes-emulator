@@ -1,11 +1,13 @@
 package org.example.nes.cpu;
 
-import org.example.nes.Bus;
-import org.example.nes.mapper.Mapper;
-import org.example.nes.ppu.OAM;
+import org.example.nes.bus.Bus;
+import org.example.nes.bus.BusConfiguration;
+import org.example.nes.cpu.bus.CPU2A03Bus;
+import org.example.nes.cpu.bus.DMAController;
+import org.example.nes.cpu.bus.DMAHaltException;
 import org.example.nes.ppu.PPU2C02;
 
-import static org.example.nes.UInt.toUint;
+import static org.example.nes.utils.UInt.toUint;
 
 public class CPU2A03 {
     private static final short IRQ_ADDR = (short) 0xfffe;
@@ -46,7 +48,7 @@ public class CPU2A03 {
     private byte regY;
     private byte regP;
 
-    private final CPUBus bus;
+    private final Bus bus;
     private final InterruptController interruptionController;
     private final DMAController dmaController;
 
@@ -64,21 +66,21 @@ public class CPU2A03 {
     private byte op0;
     private byte op1;
 
-    public CPU2A03(Mapper mapper, PPU2C02 ppu, InterruptController interruptController, OAM oam) {
-        this(mapper, ppu, interruptController, new DMAController(), oam);
+    public CPU2A03(BusConfiguration mapperBusConfiguration, PPU2C02 ppu, InterruptController interruptController) {
+        this(mapperBusConfiguration, ppu, interruptController, new DMAController());
     }
 
-    private CPU2A03(Mapper mapper, PPU2C02 ppu, InterruptController interruptController, DMAController dmaController, OAM oam) {
-        this(new CPU2A03Bus(mapper, ppu, dmaController, oam), (short) 0, interruptController, dmaController);
+    private CPU2A03(BusConfiguration mapperBusConfiguration, PPU2C02 ppu, InterruptController interruptController, DMAController dmaController) {
+        this(new CPU2A03Bus(mapperBusConfiguration, ppu, dmaController), (short) 0, interruptController, dmaController);
         interrupt_reset = true;
         dmaController.setBus(bus);
     }
 
-    CPU2A03(CPUBus bus, short regPC) {
+    CPU2A03(Bus bus, short regPC) {
         this(bus, regPC, new NoopInterruptController());
     }
 
-    CPU2A03(CPUBus bus, short regPC, InterruptController interruptController) {
+    CPU2A03(Bus bus, short regPC, InterruptController interruptController) {
         this(
                 bus,
                 regPC,
@@ -92,7 +94,7 @@ public class CPU2A03 {
         );
     }
 
-    CPU2A03(CPUBus bus, short regPC, InterruptController interruptController, DMAController dmaController) {
+    CPU2A03(Bus bus, short regPC, InterruptController interruptController, DMAController dmaController) {
         this(
                 bus,
                 regPC,
@@ -107,7 +109,7 @@ public class CPU2A03 {
     }
 
 
-    CPU2A03(CPUBus bus, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP, InterruptController interruptController, DMAController dmaController) {
+    CPU2A03(Bus bus, short regPC, byte regSP, byte regA, byte regX, byte regY, byte regP, InterruptController interruptController, DMAController dmaController) {
         this.bus = bus;
         this.regPC = regPC;
         this.regSP = regSP;

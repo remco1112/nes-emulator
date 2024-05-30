@@ -7,7 +7,7 @@ import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
 
-import static org.example.nes.UInt.toUint;
+import static org.example.nes.utils.UInt.toUint;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @RunWith(JUnitQuickcheck.class)

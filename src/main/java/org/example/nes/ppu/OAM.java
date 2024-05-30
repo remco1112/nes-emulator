@@ -1,6 +1,6 @@
 package org.example.nes.ppu;
 
-import static org.example.nes.UInt.toUint;
+import static org.example.nes.utils.UInt.toUint;
 
 public class OAM {
     private final byte[] oam;
