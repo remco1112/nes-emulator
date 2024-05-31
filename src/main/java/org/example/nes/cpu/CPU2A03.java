@@ -5,6 +5,7 @@ import org.example.nes.bus.BusConfiguration;
 import org.example.nes.cpu.bus.CPU2A03Bus;
 import org.example.nes.cpu.bus.DMAController;
 import org.example.nes.cpu.bus.DMAHaltException;
+import org.example.nes.input.InputController;
 import org.example.nes.ppu.PPU2C02;
 
 import static org.example.nes.utils.UInt.toUint;
@@ -66,12 +67,12 @@ public class CPU2A03 {
     private byte op0;
     private byte op1;
 
-    public CPU2A03(BusConfiguration mapperBusConfiguration, PPU2C02 ppu, InterruptController interruptController) {
-        this(mapperBusConfiguration, ppu, interruptController, new DMAController());
+    public CPU2A03(BusConfiguration mapperBusConfiguration, PPU2C02 ppu, InterruptController interruptController, InputController inputController) {
+        this(mapperBusConfiguration, ppu, interruptController, new DMAController(), inputController);
     }
 
-    private CPU2A03(BusConfiguration mapperBusConfiguration, PPU2C02 ppu, InterruptController interruptController, DMAController dmaController) {
-        this(new CPU2A03Bus(mapperBusConfiguration, ppu, dmaController), (short) 0, interruptController, dmaController);
+    private CPU2A03(BusConfiguration mapperBusConfiguration, PPU2C02 ppu, InterruptController interruptController, DMAController dmaController, InputController inputController) {
+        this(new CPU2A03Bus(mapperBusConfiguration, ppu, dmaController, inputController), (short) 0, interruptController, dmaController);
         interrupt_reset = true;
         dmaController.setBus(bus);
     }

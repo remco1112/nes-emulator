@@ -1,9 +1,13 @@
 package org.example.nes;
 
 import org.example.nes.bridge.MasterClock;
+import org.example.nes.display.AWTStandardControllerAdapter;
 import org.example.nes.display.NESFrame;
 import org.example.nes.display.NESImageProducer;
 import org.example.nes.display.PaletteColorModel;
+import org.example.nes.input.InputController;
+import org.example.nes.input.NullInputDevice;
+import org.example.nes.input.StandardControllerInputDevice;
 import org.example.nes.mapper.INESLoader;
 import org.example.nes.mapper.Mapper;
 
@@ -24,10 +28,14 @@ public final class Main {
 
         final NESImageProducer nesImageProducer = new NESImageProducer(new PaletteColorModel(palette));
         final NESFrame nesFrame = new NESFrame(nesImageProducer, 3);
+        final AWTStandardControllerAdapter awtStandardControllerAdapter = new AWTStandardControllerAdapter();
+        nesFrame.addKeyListener(awtStandardControllerAdapter);
 
         final INESLoader inesLoader = new INESLoader();
         final Mapper mapper = inesLoader.loadRom(Files.newInputStream(Path.of(args[0])));
-        final MasterClock masterClock = new MasterClock(mapper, nesImageProducer);
+        final InputController inputController = new InputController(new StandardControllerInputDevice(awtStandardControllerAdapter), new NullInputDevice());
+
+        final MasterClock masterClock = new MasterClock(mapper, nesImageProducer, inputController);
         masterClock.start();
     }
 }
