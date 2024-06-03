@@ -2,7 +2,7 @@ package org.example.nes.apu;
 
 import static org.example.nes.utils.UInt.toUint;
 
-public class Sequencer {
+public class PulseSequencer {
     private static final int SEQUENCE_LENGTH = 8;
     private static final byte[] LOOKUP_TABLE = new byte[] {
             (byte) 0b01000000,
