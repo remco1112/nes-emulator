@@ -36,7 +36,7 @@ public class PulseWaveGenerator {
             return false;
         }
         if (timer.tick()) {
-            waveValue = toUint(LOOKUP_TABLE[duty]) >>> SEQUENCE_LENGTH - getAndDecrementCycle() - 1 == 1;
+            waveValue = ((toUint(LOOKUP_TABLE[duty]) >>> SEQUENCE_LENGTH - getAndDecrementCycle() - 1) & 0x1) == 1;
         }
         return waveValue;
     }

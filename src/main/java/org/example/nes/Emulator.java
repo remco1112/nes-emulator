@@ -10,17 +10,21 @@ import org.example.nes.input.NullInputDevice;
 import org.example.nes.input.StandardControllerInputDevice;
 import org.example.nes.mapper.INESLoader;
 import org.example.nes.mapper.Mapper;
+import org.example.nes.sound.JavaSoundSampleConsumer;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public final class Main {
-    private Main() {
+public class Emulator {
+    public static void main(String[] args) throws IOException {
+        final INESLoader inesLoader = new INESLoader();
+        final Mapper mapper = inesLoader.loadRom(Files.newInputStream(Path.of(args[0])));
 
+        new Emulator().start(mapper);
     }
 
-    public static void main(String[] args) throws IOException {
+    public void start(Mapper mapper) throws IOException {
         final byte[] palette;
         try(var paletteIs = PaletteColorModel.class.getResourceAsStream("default.pal")) {
             palette = paletteIs.readAllBytes();
@@ -31,11 +35,9 @@ public final class Main {
         final AWTStandardControllerAdapter awtStandardControllerAdapter = new AWTStandardControllerAdapter();
         nesFrame.addKeyListener(awtStandardControllerAdapter);
 
-        final INESLoader inesLoader = new INESLoader();
-        final Mapper mapper = inesLoader.loadRom(Files.newInputStream(Path.of(args[0])));
         final InputController inputController = new InputController(new StandardControllerInputDevice(awtStandardControllerAdapter), new NullInputDevice());
 
-        final MasterClock masterClock = new MasterClock(mapper, nesImageProducer, inputController);
+        final MasterClock masterClock = new MasterClock(mapper, nesImageProducer, inputController, new JavaSoundSampleConsumer());
         masterClock.start();
     }
 }

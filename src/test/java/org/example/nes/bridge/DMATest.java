@@ -44,7 +44,7 @@ public class DMATest {
         final Mapper mapper = new NROM(prgRom, new byte[0x2000]);
 
         final MasterClock clock = new MasterClock(mapper, (_) -> {
-        }, new InputController(new NullInputDevice(), new NullInputDevice()));
+        }, new InputController(new NullInputDevice(), new NullInputDevice()), (_) -> {});
 
         for (int i = 0; i < 85000; i++) {
             clock.tick();

@@ -1,5 +1,7 @@
 package org.example.nes.apu;
 
+import static org.example.nes.utils.UInt.toUint;
+
 public class LengthCounter {
     private static final byte[] LOOKUP_TABLE = new byte[] {
             10, (byte) 254, 20,  2, 40,  4, 80,  6, (byte) 160,  8, 60, 10, 14, 12, 26, 14,
@@ -24,7 +26,7 @@ public class LengthCounter {
     void setLength(int lengthIndex) {
         assert lengthIndex < LOOKUP_TABLE.length;
         if (enabled) {
-            counter = LOOKUP_TABLE[lengthIndex];
+            counter = toUint(LOOKUP_TABLE[lengthIndex]);
         }
     }
 
