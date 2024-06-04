@@ -1,5 +1,6 @@
 package org.example.nes.cpu;
 
+import org.example.nes.apu.APURP2A03;
 import org.example.nes.bus.Bus;
 import org.example.nes.bus.BusConfiguration;
 import org.example.nes.cpu.bus.CPU2A03Bus;
@@ -67,12 +68,12 @@ public class CPU2A03 {
     private byte op0;
     private byte op1;
 
-    public CPU2A03(BusConfiguration mapperBusConfiguration, PPU2C02 ppu, InterruptController interruptController, InputController inputController) {
-        this(mapperBusConfiguration, ppu, interruptController, new DMAController(), inputController);
+    public CPU2A03(BusConfiguration mapperBusConfiguration, PPU2C02 ppu, InterruptController interruptController, InputController inputController, APURP2A03 apu) {
+        this(mapperBusConfiguration, ppu, interruptController, new DMAController(), inputController, apu);
     }
 
-    private CPU2A03(BusConfiguration mapperBusConfiguration, PPU2C02 ppu, InterruptController interruptController, DMAController dmaController, InputController inputController) {
-        this(new CPU2A03Bus(mapperBusConfiguration, ppu, dmaController, inputController), (short) 0, interruptController, dmaController);
+    private CPU2A03(BusConfiguration mapperBusConfiguration, PPU2C02 ppu, InterruptController interruptController, DMAController dmaController, InputController inputController, APURP2A03 apu) {
+        this(new CPU2A03Bus(mapperBusConfiguration, ppu, dmaController, inputController, apu), (short) 0, interruptController, dmaController);
         interrupt_reset = true;
         dmaController.setBus(bus);
     }

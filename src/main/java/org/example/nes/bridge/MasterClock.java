@@ -1,5 +1,6 @@
 package org.example.nes.bridge;
 
+import org.example.nes.apu.APURP2A03;
 import org.example.nes.cpu.CPU2A03;
 import org.example.nes.display.PixelConsumer;
 import org.example.nes.input.InputController;
@@ -9,6 +10,7 @@ import org.example.nes.ppu.PPU2C02;
 public class MasterClock {
     final CPU2A03 cpu2A03;
     final PPU2C02 ppu2C02;
+    final APURP2A03 apu;
     final PixelConsumer pixelConsumer;
 
     int counter = 0;
@@ -16,8 +18,9 @@ public class MasterClock {
     public MasterClock(Mapper mapper, PixelConsumer pixelConsumer, InputController inputController) {
         final NESInterruptController nesInterruptController = new NESInterruptController();
         this.pixelConsumer = pixelConsumer;
+        this.apu = new APURP2A03();
         this.ppu2C02 = new PPU2C02(mapper.getPpuBusConfiguration(), nesInterruptController);
-        this.cpu2A03 = new CPU2A03(mapper.getCpuBusConfiguration(), ppu2C02, nesInterruptController, inputController);
+        this.cpu2A03 = new CPU2A03(mapper.getCpuBusConfiguration(), ppu2C02, nesInterruptController, inputController, apu);
     }
 
     public void start() {
@@ -46,6 +49,7 @@ public class MasterClock {
         }
         if (counter % 3 == 0) {
             cpu2A03.tick();
+            apu.tick();
         }
         counter = (counter + 1) % 89341;
     }

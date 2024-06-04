@@ -4,54 +4,59 @@ import org.example.nes.sequencer.SequenceEventCollection;
 import org.example.nes.sequencer.Sequencer;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 
 public class FrameCounter {
     private static final SequenceEventCollection<FrameCounterSequencerEvents> FOUR_STEP_SEQUENCE;
     private static final SequenceEventCollection<FrameCounterSequencerEvents> FIVE_STEP_SEQUENCE;
-    private static final Set<FrameClockResult> QUARTER = Collections.unmodifiableSet(EnumSet.of(FrameClockResult.QUARTER));
-    private static final Set<FrameClockResult> QUARTER_HALF = Collections.unmodifiableSet(EnumSet.of(FrameClockResult.QUARTER, FrameClockResult.HALF));
-    private static final Set<FrameClockResult> NONE = Collections.unmodifiableSet(EnumSet.noneOf(FrameClockResult.class));
+    private static final Set<ClockResult> QUARTER = Collections.unmodifiableSet(EnumSet.of(ClockResult.QUARTER));
+    private static final Set<ClockResult> QUARTER_HALF = Collections.unmodifiableSet(EnumSet.of(ClockResult.QUARTER, ClockResult.HALF));
+    private static final Set<ClockResult> APU = Collections.unmodifiableSet(EnumSet.of(ClockResult.APU));
+    private static final Set<ClockResult> NONE = Collections.unmodifiableSet(EnumSet.noneOf(ClockResult.class));
 
     static {
         final Set<FrameCounterSequencerEvents> quarter = Collections.unmodifiableSet(EnumSet.of(FrameCounterSequencerEvents.QUARTER));
         final Set<FrameCounterSequencerEvents> half = Collections.unmodifiableSet(EnumSet.of(FrameCounterSequencerEvents.HALF));
-        final Set<FrameCounterSequencerEvents> interrupt = Collections.unmodifiableSet(EnumSet.of(FrameCounterSequencerEvents.INTERRUPT));
+        final Set<FrameCounterSequencerEvents> apu = Collections.unmodifiableSet(EnumSet.of(FrameCounterSequencerEvents.APU));
+        final Set<FrameCounterSequencerEvents> interrupt = Collections.unmodifiableSet(EnumSet.of(FrameCounterSequencerEvents.APU, FrameCounterSequencerEvents.INTERRUPT));
         final Set<FrameCounterSequencerEvents> interruptHalf = Collections.unmodifiableSet(EnumSet.of(FrameCounterSequencerEvents.HALF, FrameCounterSequencerEvents.INTERRUPT));
+        final Set<FrameCounterSequencerEvents> none = Collections.emptySet();
 
-        final Map<Integer, Set<FrameCounterSequencerEvents>> commonSequence = Map.of(
-                3728 * 2 + 1, quarter,
-                7456 * 2 + 1, half,
-                11185 * 2 + 1, quarter
-        );
 
-        final Map<Integer, Set<FrameCounterSequencerEvents>> fourStepSequenceEnd = Map.of(
-                0, interrupt,
-                14914 * 2, interrupt,
-                14914 * 2 + 1, interruptHalf
-        );
+        final List<Set<FrameCounterSequencerEvents>> fourStepSequence = new ArrayList<>(14915 * 2);
+        final List<Set<FrameCounterSequencerEvents>> fiveStepSequence = new ArrayList<>(18641 * 2);
 
-        final Map<Integer, Set<FrameCounterSequencerEvents>> fiveStepSequenceEnd = Map.of(
-                18640 * 2 + 1, half
-        );
+        for (int i = 0; i < 14915 * 2; i++) {
+            final Set<FrameCounterSequencerEvents> frameCounterSequencerEvents = i % 2 == 0 ? apu : none;
+            fourStepSequence.add(frameCounterSequencerEvents);
+            fiveStepSequence.add(frameCounterSequencerEvents);
+        }
 
-        FOUR_STEP_SEQUENCE = SequenceEventCollection.ofMap(
-                Stream.of(commonSequence, fourStepSequenceEnd)
-                        .flatMap(m -> m.entrySet().stream())
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        for (int i = 14915 * 2; i < 18641 * 2; i++) {
+            final Set<FrameCounterSequencerEvents> frameCounterSequencerEvents = i % 2 == 0 ? apu : none;
+            fiveStepSequence.add(frameCounterSequencerEvents);
+        }
 
-        FIVE_STEP_SEQUENCE = SequenceEventCollection.ofMap(
-                Stream.of(commonSequence, fiveStepSequenceEnd)
-                        .flatMap(m -> m.entrySet().stream())
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        fourStepSequence.set(0, interrupt);
+        fourStepSequence.set(3728 * 2 + 1, quarter);
+        fourStepSequence.set(7456 * 2 + 1, half);
+        fourStepSequence.set(11185 * 2 + 1, quarter);
+        fourStepSequence.set(14914 * 2, interrupt);
+        fourStepSequence.set(14914 * 2 + 1, interruptHalf);
+
+        fiveStepSequence.set(3728 * 2 + 1, quarter);
+        fiveStepSequence.set(7456 * 2 + 1, half);
+        fiveStepSequence.set(11185 * 2 + 1, quarter);
+        fiveStepSequence.set(18640 * 2 + 1, half);
+
+        FOUR_STEP_SEQUENCE = SequenceEventCollection.ofList(fourStepSequence);
+        FIVE_STEP_SEQUENCE = SequenceEventCollection.ofList(fiveStepSequence);
     }
 
     private final Map<FrameCounterSequencerEvents, Runnable> eventHandlingMap = new EnumMap<>(Map.of(
             FrameCounterSequencerEvents.HALF, this::handleHalf,
             FrameCounterSequencerEvents.QUARTER, this::handleQuarter,
-            FrameCounterSequencerEvents.INTERRUPT, this::handleInterrupt
+            FrameCounterSequencerEvents.INTERRUPT, this::handleInterrupt,
+            FrameCounterSequencerEvents.APU, this::handleApu
 
     ));
 
@@ -65,7 +70,7 @@ public class FrameCounter {
     private boolean interrupt;
     private int resetCountDown;
 
-    private Set<FrameClockResult> result = NONE;
+    private Set<ClockResult> result = NONE;
 
     void configure(boolean irqEnabled, boolean stepMode5) {
         this.irqEnabled = irqEnabled;
@@ -76,7 +81,7 @@ public class FrameCounter {
         resetCountDown = activeSequencer.getSequenceIndex() % 2 == 0 ? 3 : 4;
     }
 
-    Set<FrameClockResult> tick() {
+    Set<ClockResult> tick() {
         if (resetCountDown > 0 && --resetCountDown == 0) {
                 return handleReset();
         }
@@ -85,7 +90,7 @@ public class FrameCounter {
         return result;
     }
 
-    private Set<FrameClockResult> handleReset() {
+    private Set<ClockResult> handleReset() {
         fourStepSequencer.reset();
         fiveStepSequencer.reset();
         if (stepMode5) {
@@ -97,9 +102,10 @@ public class FrameCounter {
         }
     }
 
-    enum FrameClockResult {
+    enum ClockResult {
         QUARTER,
         HALF,
+        APU
     }
 
     void clearInterrupt() {
@@ -113,7 +119,8 @@ public class FrameCounter {
     private enum FrameCounterSequencerEvents {
         QUARTER,
         HALF,
-        INTERRUPT
+        INTERRUPT,
+        APU
     }
 
     private void handleHalf() {
@@ -128,5 +135,9 @@ public class FrameCounter {
         if (irqEnabled) {
             interrupt = true;
         }
+    }
+
+    private void handleApu() {
+        result = APU;
     }
 }

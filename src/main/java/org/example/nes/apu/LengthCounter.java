@@ -17,7 +17,7 @@ public class LengthCounter {
         }
     }
 
-    boolean isMuting() {
+    boolean isMuted() {
         return counter == 0;
     }
 

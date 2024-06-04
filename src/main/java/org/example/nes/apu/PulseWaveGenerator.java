@@ -2,7 +2,7 @@ package org.example.nes.apu;
 
 import static org.example.nes.utils.UInt.toUint;
 
-public class PulseSequencer {
+public class PulseWaveGenerator {
     private static final int SEQUENCE_LENGTH = 8;
     private static final byte[] LOOKUP_TABLE = new byte[] {
             (byte) 0b01000000,
@@ -12,22 +12,33 @@ public class PulseSequencer {
     };
 
     private final Divider timer = new Divider();
+
     private int duty;
     private int cycle;
-    private boolean silenced;
+    private boolean waveValue;
+    private boolean muted;
 
     void setDuty(int duty) {
         this.duty = duty;
     }
 
     void setTimer(int value) {
-        timer.reload(value);
-        cycle = 0;
-        silenced = value < SEQUENCE_LENGTH;
+        timer.setPeriod(value);
+        muted = value < SEQUENCE_LENGTH;
+    }
+
+    public int getTimerPeriod() {
+        return timer.getPeriod();
     }
 
     boolean tick() {
-        return !silenced && toUint(LOOKUP_TABLE[duty]) >>> SEQUENCE_LENGTH - getAndDecrementCycle() - 1 == 1;
+        if (muted) {
+            return false;
+        }
+        if (timer.tick()) {
+            waveValue = toUint(LOOKUP_TABLE[duty]) >>> SEQUENCE_LENGTH - getAndDecrementCycle() - 1 == 1;
+        }
+        return waveValue;
     }
 
     private int getAndDecrementCycle() {
@@ -38,5 +49,9 @@ public class PulseSequencer {
             cycle--;
         }
         return currentCycle;
+    }
+
+    void resetPeriod() {
+        cycle = 0;
     }
 }

@@ -1,6 +1,6 @@
 package org.example.nes.cpu.bus;
 
-import org.example.nes.apu.APUController;
+import org.example.nes.apu.APURP2A03;
 import org.example.nes.bus.Memory;
 import org.example.nes.input.InputController;
 
@@ -12,11 +12,12 @@ public class IORegisterBridge implements Memory {
 
     private final DMAController dmaController;
     private final InputController inputController;
-    private final APUController apuController = new APUController();
+    private final APURP2A03 apu;
 
-    IORegisterBridge(DMAController dmaController, InputController inputController) {
+    IORegisterBridge(DMAController dmaController, InputController inputController, APURP2A03 apu) {
         this.dmaController = dmaController;
         this.inputController = inputController;
+        this.apu = apu;
     }
 
     @Override
@@ -27,7 +28,7 @@ public class IORegisterBridge implements Memory {
     @Override
     public byte read(short address) {
         return switch (address) {
-            case 0x15 -> apuController.readStatus();
+            case 0x15 -> apu.readStatus();
             case 0x16 -> inputController.readDevice1();
             case 0x17 -> inputController.readDevice2();
             default -> {
@@ -40,28 +41,28 @@ public class IORegisterBridge implements Memory {
     @Override
     public void write(short address, byte value) {
         switch (address) {
-            case 0x00 -> apuController.writeSQ1Vol(value);
-            case 0x01 -> apuController.writeSQ1Sweep(value);
-            case 0x02 -> apuController.writeSQ1Low(value);
-            case 0x03 -> apuController.writeSQ1High(value);
-            case 0x04 -> apuController.writeSQ2Vol(value);
-            case 0x05 -> apuController.writeSQ2Sweep(value);
-            case 0x06 -> apuController.writeSQ2Low(value);
-            case 0x07 -> apuController.writeSQ2High(value);
-            case 0x08 -> apuController.writeTRILinear(value);
-            case 0x0A -> apuController.writeTRILow(value);
-            case 0x0B -> apuController.writeTRIHigh(value);
-            case 0x0C -> apuController.writeNoiseVol(value);
-            case 0x0E -> apuController.writeNoiseLow(value);
-            case 0x0F -> apuController.writeNoiseHigh(value);
-            case 0x10 -> apuController.writeDMCFreq(value);
-            case 0x11 -> apuController.writeDMCRaw(value);
-            case 0x12 -> apuController.writeDMCStart(value);
-            case 0x13 -> apuController.writeDMCLen(value);
+            case 0x00 -> apu.writeSQ1Vol(value);
+            case 0x01 -> apu.writeSQ1Sweep(value);
+            case 0x02 -> apu.writeSQ1Low(value);
+            case 0x03 -> apu.writeSQ1High(value);
+            case 0x04 -> apu.writeSQ2Vol(value);
+            case 0x05 -> apu.writeSQ2Sweep(value);
+            case 0x06 -> apu.writeSQ2Low(value);
+            case 0x07 -> apu.writeSQ2High(value);
+            case 0x08 -> apu.writeTRILinear(value);
+            case 0x0A -> apu.writeTRILow(value);
+            case 0x0B -> apu.writeTRIHigh(value);
+            case 0x0C -> apu.writeNoiseVol(value);
+            case 0x0E -> apu.writeNoiseLow(value);
+            case 0x0F -> apu.writeNoiseHigh(value);
+            case 0x10 -> apu.writeDMCFreq(value);
+            case 0x11 -> apu.writeDMCRaw(value);
+            case 0x12 -> apu.writeDMCStart(value);
+            case 0x13 -> apu.writeDMCLen(value);
             case 0x14 -> dmaController.requestOamDma(value);
-            case 0x15 -> apuController.writeStatus(value);
+            case 0x15 -> apu.writeStatus(value);
             case 0x16 -> inputController.writeOutRegister(value);
-            case 0x17 -> apuController.writeFrameCounter(value);
+            case 0x17 -> apu.writeFrameCounter(value);
             default -> throw new IllegalArgumentException("Unsupported IO register write: " + writeToString(address, value));
         }
     }

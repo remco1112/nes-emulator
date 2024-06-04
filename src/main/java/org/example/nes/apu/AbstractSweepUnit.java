@@ -1,11 +1,6 @@
 package org.example.nes.apu;
 
 abstract class AbstractSweepUnit {
-    private static final int ENABLE_MASK = 0x80;
-    private static final int DIVIDER_PERIOD_MASK = 0x70;
-    private static final int DIVIDER_PERIOD_SHIFT_OFFSET = 4;
-    private static final int NEGATE_MASK = 0x4;
-    private static final int SHIFT_COUNT_MASK = 0x3;
     private static final int CURRENT_PERIOD_MIN_VALUE = 8;
     private static final int TARGET_PERIOD_MAX_VALUE = 0x7ff;
 
@@ -14,14 +9,15 @@ abstract class AbstractSweepUnit {
     private boolean enabled;
     private boolean negate;
     private boolean reload;
-    private int dividerPeriod;
     private int shiftCount;
 
-    void configure(byte configuration) {
-        enabled = (configuration & ENABLE_MASK) == ENABLE_MASK;
-        dividerPeriod = (configuration & DIVIDER_PERIOD_MASK) >>> DIVIDER_PERIOD_SHIFT_OFFSET;
-        negate = (configuration & NEGATE_MASK) == NEGATE_MASK;
-        shiftCount = configuration & SHIFT_COUNT_MASK;
+    void configure(boolean enabled, int dividerPeriod, boolean negate, int shiftCount) {
+        this.enabled = enabled;
+        this.negate = negate;
+        this.shiftCount = shiftCount;
+
+        divider.setPeriod(dividerPeriod);
+
         reload = true;
     }
 
@@ -31,12 +27,12 @@ abstract class AbstractSweepUnit {
 
     int tick(int currentPeriod) {
         if (reload) {
-            divider.reload(dividerPeriod);
+            divider.reload();
             reload = false;
-        } else if (divider.tick(dividerPeriod) && enabled && shiftCount > 0 && !isMuted(currentPeriod)) {
+        } else if (divider.tick() && enabled && shiftCount > 0 && !isMuted(currentPeriod)) {
             return computeTargetPeriod(currentPeriod);
         }
-        return currentPeriod;
+        return -1;
     }
 
     private int computeTargetPeriod(int currentPeriod) {

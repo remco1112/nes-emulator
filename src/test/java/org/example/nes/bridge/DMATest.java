@@ -1,5 +1,7 @@
 package org.example.nes.bridge;
 
+import org.example.nes.input.InputController;
+import org.example.nes.input.NullInputDevice;
 import org.example.nes.mapper.Mapper;
 import org.example.nes.mapper.NROM;
 import org.junit.jupiter.api.Test;
@@ -42,7 +44,7 @@ public class DMATest {
         final Mapper mapper = new NROM(prgRom, new byte[0x2000]);
 
         final MasterClock clock = new MasterClock(mapper, (_) -> {
-        });
+        }, new InputController(new NullInputDevice(), new NullInputDevice()));
 
         for (int i = 0; i < 85000; i++) {
             clock.tick();
