@@ -31,14 +31,10 @@ public class PulseWaveGenerator {
         return timer.getPeriod();
     }
 
-    boolean tick() {
-        if (muted) {
-            return false;
-        }
-        if (timer.tick()) {
+    void tick() {
+        if (!muted && timer.tick()) {
             waveValue = ((toUint(LOOKUP_TABLE[duty]) >>> SEQUENCE_LENGTH - getAndDecrementCycle() - 1) & 0x1) == 1;
         }
-        return waveValue;
     }
 
     private int getAndDecrementCycle() {
@@ -53,5 +49,9 @@ public class PulseWaveGenerator {
 
     void resetPeriod() {
         cycle = 0;
+    }
+
+    boolean isWaveHigh() {
+        return !muted && waveValue;
     }
 }

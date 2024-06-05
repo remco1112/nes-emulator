@@ -27,20 +27,7 @@ public class MasterClock {
     }
 
     public void start() {
-        long prevTime = System.nanoTime();
         while (!Thread.interrupted()) {
-            if (counter == 0) {
-                long curTime = System.nanoTime();
-                    final long sleepTime = 16_666_666L - (curTime - prevTime);
-                    if (sleepTime > 0) {
-                        try {
-                            Thread.sleep(sleepTime / 1_000_000, (int) (sleepTime % 1_000_000));
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-                    prevTime = System.nanoTime();
-            }
             tick();
         }
     }
@@ -50,13 +37,11 @@ public class MasterClock {
         if (pixel != -1) {
             pixelConsumer.onPixel(pixel);
         }
-        if (counter % 3 == 0) {
+        if (counter == 0) {
             cpu2A03.tick();
             final short soundSample = apu.tick();
-            if (soundSample != -1) {
-                soundSampleConsumer.onSample(soundSample);
-            }
+            soundSampleConsumer.onSample(soundSample);
         }
-        counter = (counter + 1) % 89341;
+        counter = (counter + 1) % 3;
     }
 }

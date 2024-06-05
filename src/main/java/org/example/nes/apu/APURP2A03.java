@@ -102,12 +102,6 @@ public class APURP2A03 {
         final int pulse1 = pulse1Channel.tick(frameCounterClockResults);
         final int pulse2 = pulse2Channel.tick(frameCounterClockResults);
 
-        if (frameCounterClockResults.contains(FrameCounter.ClockResult.APU)) {
-            final short mixed = mixer.mix(pulse1, pulse2, 0, 0, 0);
-            assert mixed != -1;
-            return mixed;
-        } else {
-            return -1;
-        }
+        return mixer.mix(pulse1, pulse2, 0, 0, 0);
     }
 }

@@ -52,9 +52,9 @@ abstract class AbstractPulseChannel {
     }
 
     int tick(Set<FrameCounter.ClockResult> clockResult) {
-        int result = -1;
+        final int result = emitEnvelopeVolume() ? envelopeGenerator.getVolume() : 0;
         if (clockResult.contains(FrameCounter.ClockResult.APU)) {
-            result = emitEnvelopeVolume() ? envelopeGenerator.getVolume() : 0;
+            pulseWaveGenerator.tick();
         }
         if (clockResult.contains(FrameCounter.ClockResult.QUARTER)) {
             envelopeGenerator.tick();
@@ -70,7 +70,7 @@ abstract class AbstractPulseChannel {
     }
 
     private boolean emitEnvelopeVolume() {
-        return pulseWaveGenerator.tick()
+        return pulseWaveGenerator.isWaveHigh()
                 && !sweepUnit.isMuted(pulseWaveGenerator.getTimerPeriod())
                 && !lengthCounter.isMuted();
     }

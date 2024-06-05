@@ -8,16 +8,18 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
 public class JavaSoundSampleConsumer implements SoundSampleConsumer {
-    private static final AudioFormat AUDIO_FORMAT = new AudioFormat(893400f, Short.SIZE, 1, true, false);
-    private final byte[] sampleByteArray = new byte[Short.BYTES];
+    private static final float CPU_CLOCK_SPEED = 1.789773f * 1_000_000f;
+    private static final int AUDIO_BUFFER_SIZE = Short.SIZE * 3000;
+    private static final AudioFormat AUDIO_FORMAT = new AudioFormat(CPU_CLOCK_SPEED, Short.SIZE, 1, true, false);
 
+    private final byte[] sampleByteArray = new byte[Short.BYTES];
     private final SourceDataLine sourceDataLine;
 
     {
 
         try {
             sourceDataLine = AudioSystem.getSourceDataLine(AUDIO_FORMAT);
-            sourceDataLine.open(AUDIO_FORMAT, Short.SIZE * 10000);
+            sourceDataLine.open(AUDIO_FORMAT, AUDIO_BUFFER_SIZE);
             sourceDataLine.start();
         } catch (LineUnavailableException e) {
             throw new RuntimeException(e);
