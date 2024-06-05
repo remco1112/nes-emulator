@@ -125,9 +125,12 @@ public class PPU2C02 {
 
     private short producePixel() {
         short backgroundPaletteIndex = (short) (showBg ? ((((patternLoShifter << toUint(x)) & 0x8000) >>> 15)
-                        | ((((patternHiShifter << toUint(x)) & 0x8000) >>> 15) << 1)
-                        | ((((attributeLoShifter << toUint(x)) & 0x8000) >>> 15) << 2)
-                        | ((((attributeHiShifter << toUint(x)) & 0x8000) >>> 15) << 3)) : 0);
+                        | ((((patternHiShifter << toUint(x)) & 0x8000) >>> 15) << 1)) : 0);
+
+        if (backgroundPaletteIndex != 0) {
+            backgroundPaletteIndex = (short) (toUint(backgroundPaletteIndex) | (((((attributeLoShifter << toUint(x)) & 0x8000) >>> 15) << 2)
+                                | ((((attributeHiShifter << toUint(x)) & 0x8000) >>> 15) << 3)));
+        }
 
         if (greyScale) {
             backgroundPaletteIndex &= 0x30;
