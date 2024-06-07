@@ -1,30 +1,32 @@
 package org.example.nes.apu;
 
-import static org.example.nes.utils.UInt.toUint;
+import org.example.nes.sequencer.data.DataSequencer;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.IntStream;
 
 public class PulseWaveGenerator {
     private static final int SEQUENCE_LENGTH = 8;
-    private static final byte[] LOOKUP_TABLE = new byte[] {
-            (byte) 0b01000000,
-            (byte) 0b01100000,
-            (byte) 0b01111000,
-            (byte) 0b10011111
-    };
+
+    private final List<DataSequencer<Boolean>> sequencers = IntStream.of(0b01000000, 0b01100000, 0b01111000, 0b10011111)
+            .mapToObj(PulseWaveGenerator::intToBooleanList)
+            .map(DataSequencer::new)
+            .toList();
 
     private final Divider timer = new Divider();
 
-    private int duty;
-    private int cycle;
-    private boolean waveValue;
-    private boolean muted;
+    private DataSequencer<Boolean> activeSequencer = sequencers.getFirst();
+    private boolean active;
 
     void setDuty(int duty) {
-        this.duty = duty;
+        assert Objects.checkIndex(duty, sequencers.size()) == duty;
+        activeSequencer = sequencers.get(duty);
     }
 
     void setTimer(int value) {
         timer.setPeriod(value);
-        muted = value < SEQUENCE_LENGTH;
+        active = value >= SEQUENCE_LENGTH;
     }
 
     public int getTimerPeriod() {
@@ -32,26 +34,20 @@ public class PulseWaveGenerator {
     }
 
     void tick() {
-        if (!muted && timer.tick()) {
-            waveValue = ((toUint(LOOKUP_TABLE[duty]) >>> SEQUENCE_LENGTH - getAndDecrementCycle() - 1) & 0x1) == 1;
-        }
-    }
-
-    private int getAndDecrementCycle() {
-        final int currentCycle = cycle;
-        if (cycle == 0) {
-            cycle = SEQUENCE_LENGTH - 1;
-        } else {
-            cycle--;
-        }
-        return currentCycle;
+        if (active && timer.tick()) for (var sequencer : sequencers) sequencer.tick();
     }
 
     void resetPeriod() {
-        cycle = 0;
+        for (var sequencer : sequencers) sequencer.reset();
     }
 
     boolean isWaveHigh() {
-        return !muted && waveValue;
+        return active && activeSequencer.getValue();
+    }
+
+    private static List<Boolean> intToBooleanList(int value) {
+        return IntStream.range(0, SEQUENCE_LENGTH)
+                .mapToObj(i -> ((value >>> (SEQUENCE_LENGTH - i)) & 1) == 1)
+                .toList();
     }
 }
