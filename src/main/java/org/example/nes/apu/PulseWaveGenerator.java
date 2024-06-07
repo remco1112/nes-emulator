@@ -8,9 +8,11 @@ import java.util.stream.IntStream;
 
 public class PulseWaveGenerator {
     private static final int SEQUENCE_LENGTH = 8;
-
-    private final List<DataSequencer<Boolean>> sequencers = IntStream.of(0b01000000, 0b01100000, 0b01111000, 0b10011111)
+    private static final List<List<Boolean>> SEQUENCERS_DATA = IntStream.of(0b01000000, 0b01100000, 0b01111000, 0b10011111)
             .mapToObj(PulseWaveGenerator::intToBooleanList)
+            .toList();
+
+    private final List<DataSequencer<Boolean>> sequencers = SEQUENCERS_DATA.stream()
             .map(DataSequencer::new)
             .toList();
 
