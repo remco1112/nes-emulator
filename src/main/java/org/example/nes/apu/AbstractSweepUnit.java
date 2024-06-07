@@ -4,19 +4,19 @@ abstract class AbstractSweepUnit {
     private static final int CURRENT_PERIOD_MIN_VALUE = 8;
     private static final int TARGET_PERIOD_MAX_VALUE = 0x7ff;
 
-    private final Divider divider = new Divider();
+    private final Timer timer = new Timer();
 
     private boolean enabled;
     private boolean negate;
     private boolean reload;
     private int shiftCount;
 
-    void configure(boolean enabled, int dividerPeriod, boolean negate, int shiftCount) {
+    void configure(boolean enabled, int timerPeriod, boolean negate, int shiftCount) {
         this.enabled = enabled;
         this.negate = negate;
         this.shiftCount = shiftCount;
 
-        divider.setPeriod(dividerPeriod);
+        timer.setPeriod(timerPeriod);
 
         reload = true;
     }
@@ -27,9 +27,9 @@ abstract class AbstractSweepUnit {
 
     int tick(int currentPeriod) {
         if (reload) {
-            divider.reload();
+            timer.reload();
             reload = false;
-        } else if (divider.tick() && enabled && shiftCount > 0 && !isMuted(currentPeriod)) {
+        } else if (timer.tick() && enabled && shiftCount > 0 && !isMuted(currentPeriod)) {
             return computeTargetPeriod(currentPeriod);
         }
         return -1;

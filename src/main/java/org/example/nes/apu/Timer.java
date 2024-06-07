@@ -1,35 +1,34 @@
 package org.example.nes.apu;
 
-public class Divider {
+class Timer {
+    private final Counter counter = new Counter();
     private int period;
-    private int value;
 
-    Divider() {
+    Timer() {
         this(0);
     }
 
-    Divider(int period) {
+    Timer(int period) {
         this.period = period;
     }
 
     void reload() {
-        this.value = period;
+        counter.set(period);
     }
 
     boolean tick() {
-        if (value == 0) {
+        if (counter.tick()) {
             reload();
             return true;
         }
-        value--;
         return false;
     }
 
-    public void setPeriod(int period) {
+    void setPeriod(int period) {
         this.period = period;
     }
 
-    public int getPeriod() {
+    int getPeriod() {
         return period;
     }
 }

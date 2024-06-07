@@ -1,25 +1,19 @@
 package org.example.nes.apu;
 
-public class DecayLevelCounter {
+class DecayLevelCounter {
     private static final int START_VALUE = 15;
 
-    private int value;
+    private final Counter counter = new Counter();
 
     void tick(boolean loop) {
-        if (value == 0) {
-            if (loop) {
-                reload();
-            }
-        } else {
-            value--;
-        }
+        if (counter.tick() & loop) reload();
     }
 
     void reload() {
-        value = START_VALUE;
+        counter.set(START_VALUE);
     }
 
     int getValue() {
-        return value;
+        return counter.get();
     }
 }

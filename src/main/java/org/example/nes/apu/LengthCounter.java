@@ -1,39 +1,34 @@
 package org.example.nes.apu;
 
-import static org.example.nes.utils.UInt.toUint;
+import java.util.List;
+import java.util.Objects;
 
-public class LengthCounter {
-    private static final byte[] LOOKUP_TABLE = new byte[] {
-            10, (byte) 254, 20,  2, 40,  4, 80,  6, (byte) 160,  8, 60, 10, 14, 12, 26, 14,
-            12, 16, 24, 18, 48, 20, 96, 22, (byte) 192, 24, 72, 26, 16, 28, 32, 30
-    };
+class LengthCounter extends Counter {
+    private static final List<Integer> LOOKUP_TABLE = List.of(
+            10, 254, 20, 2, 40, 4, 80, 6, 160,  8, 60, 10, 14, 12, 26, 14,
+            12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30
+    );
 
     private boolean enabled;
     private boolean halted;
 
-    private int counter;
-
-    void tick() {
-        if (counter > 0 && !halted) {
-            counter--;
-        }
+    @Override
+    boolean tick() {
+        return !halted && super.tick();
     }
 
-    boolean isMuted() {
-        return counter == 0;
-    }
-
-    void setLength(int lengthIndex) {
-        assert lengthIndex < LOOKUP_TABLE.length;
+    @Override
+    void set(int lengthIndex) {
+        assert Objects.checkIndex(lengthIndex, LOOKUP_TABLE.size()) == lengthIndex;
         if (enabled) {
-            counter = toUint(LOOKUP_TABLE[lengthIndex]);
+            super.set(LOOKUP_TABLE.get(lengthIndex));
         }
     }
 
     void setEnabled(boolean enabled) {
         this.enabled = enabled;
         if (!enabled) {
-            counter = 0;
+            super.set(0);
         }
     }
 

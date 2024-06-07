@@ -2,7 +2,7 @@ package org.example.nes.apu;
 
 public class EnvelopeGenerator {
     private final DecayLevelCounter decayLevelCounter = new DecayLevelCounter();
-    private final Divider divider = new Divider();
+    private final Timer timer = new Timer();
 
     private int volume;
     private boolean constant;
@@ -14,7 +14,7 @@ public class EnvelopeGenerator {
         this.constant = constant;
         this.loop = loop;
 
-        divider.setPeriod(volume);
+        timer.setPeriod(volume);
     }
 
     void setStart() {
@@ -24,10 +24,10 @@ public class EnvelopeGenerator {
     void tick() {
         if (start) {
             decayLevelCounter.reload();
-            divider.reload();
+            timer.reload();
             start = false;
-        } else if (divider.tick()){
-                decayLevelCounter.tick(loop);
+        } else if (timer.tick()) {
+            decayLevelCounter.tick(loop);
         }
     }
 
