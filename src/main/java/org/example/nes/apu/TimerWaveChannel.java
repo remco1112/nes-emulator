@@ -1,7 +1,5 @@
 package org.example.nes.apu;
 
-import static org.example.nes.utils.UInt.toUint;
-
 class TimerWaveChannel<W extends WaveGenerator> extends WaveChannel<W> {
     private final Timer timer;
     private final boolean tickWaveGeneratorOnCpu;
@@ -10,17 +8,6 @@ class TimerWaveChannel<W extends WaveGenerator> extends WaveChannel<W> {
         super(waveGenerator);
         this.timer = timer;
         this.tickWaveGeneratorOnCpu = tickWaveGeneratorOnCpu;
-    }
-
-    @Override
-    public void writeRegister2(byte value) {
-        timer.setPeriod((timer.getPeriod() & 0x700) | toUint(value));
-    }
-
-    @Override
-    void writeRegister3(byte value) {
-        super.writeRegister3(value);
-        timer.setPeriod((timer.getPeriod() & 0xFF) | ((value & 0x7) << 8));
     }
 
     @Override

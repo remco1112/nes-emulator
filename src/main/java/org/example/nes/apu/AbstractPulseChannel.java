@@ -1,6 +1,6 @@
 package org.example.nes.apu;
 
-abstract class AbstractPulseChannel extends TimerWaveChannel<PulseWaveGenerator> {
+abstract class AbstractPulseChannel extends StandardPeriodTimerWaveChannel<WaveGenerator> {
     private final AbstractSweepUnit sweepUnit;
 
     AbstractPulseChannel(AbstractSweepUnit sweepUnit) {
@@ -20,8 +20,7 @@ abstract class AbstractPulseChannel extends TimerWaveChannel<PulseWaveGenerator>
 
     @Override
     boolean isSilenced() {
-        return super.isSilenced()
-                || sweepUnit.isMuted(getTimerPeriod());
+        return super.isSilenced() || sweepUnit.isMuted(getTimerPeriod());
     }
 
     @Override
