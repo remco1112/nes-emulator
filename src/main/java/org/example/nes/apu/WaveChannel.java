@@ -58,6 +58,7 @@ class WaveChannel<W extends WaveGenerator> extends Channel {
     void writeRegister3(byte value) {
         super.writeRegister3(value);
         lengthCounter.set((value & 0xF8) >>> 3);
+        waveGenerator.reset();
     }
 
     void setEnabled(boolean enabled) {
