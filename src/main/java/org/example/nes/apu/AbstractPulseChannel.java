@@ -1,6 +1,6 @@
 package org.example.nes.apu;
 
-abstract class AbstractPulseChannel extends StandardPeriodTimerWaveChannel<WaveGenerator> {
+abstract class AbstractPulseChannel extends StandardTimerWaveChannel<WaveGenerator> {
     private final AbstractSweepUnit sweepUnit;
 
     AbstractPulseChannel(AbstractSweepUnit sweepUnit) {

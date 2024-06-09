@@ -1,11 +1,46 @@
 package org.example.nes.apu;
 
-abstract class WaveChannel<W extends WaveGenerator> extends Channel {
-    private final LengthCounter lengthCounter = new LengthCounter();
+class WaveChannel<W extends WaveGenerator> extends Channel {
     protected final W waveGenerator;
+    private final Timer timer;
+    private final boolean tickWaveGeneratorOnCpu;
+    private final LengthCounter lengthCounter = new LengthCounter();
 
-    WaveChannel(W waveGenerator) {
+    WaveChannel(Timer timer, W waveGenerator, boolean tickWaveGeneratorOnCpu) {
         this.waveGenerator = waveGenerator;
+        this.timer = timer;
+        this.tickWaveGeneratorOnCpu = tickWaveGeneratorOnCpu;
+    }
+
+    @Override
+    void onApuTick() {
+        if (!tickWaveGeneratorOnCpu) tick();
+    }
+
+    @Override
+    void onCpuTick() {
+        if(tickWaveGeneratorOnCpu) tick();
+    }
+
+    @Override
+    boolean isSilenced() {
+        return super.isSilenced() || lengthCounter.isZero() || !timer.isActive();
+    }
+
+    protected int getTimerPeriod() {
+        return timer.getPeriod();
+    }
+
+    protected void setTimerPeriod(int period) {
+        timer.setPeriod(period);
+    }
+
+    private void tick() {
+        if (timer.tick() && shouldTickWaveGenerator()) waveGenerator.tick();
+    }
+
+    protected boolean shouldTickWaveGenerator() {
+        return true;
     }
 
     @Override
@@ -27,11 +62,6 @@ abstract class WaveChannel<W extends WaveGenerator> extends Channel {
 
     void setLengthCounterHalted(boolean halted) {
         lengthCounter.setHalted(halted);
-    }
-
-    @Override
-    boolean isSilenced() {
-        return super.isSilenced() || lengthCounter.isZero();
     }
 
     @Override

@@ -1,6 +1,6 @@
 package org.example.nes.apu;
 
-public class NoiseChannel extends TimerWaveChannel<NoiseWaveGenerator> {
+public class NoiseChannel extends WaveChannel<NoiseWaveGenerator> {
     NoiseChannel() {
         super(new NoiseTimer(), new NoiseWaveGenerator(), false);
     }

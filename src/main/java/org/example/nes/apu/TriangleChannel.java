@@ -1,6 +1,6 @@
 package org.example.nes.apu;
 
-class TriangleChannel extends StandardPeriodTimerWaveChannel<WaveGenerator> {
+class TriangleChannel extends StandardTimerWaveChannel<WaveGenerator> {
     private final LinearCounter linearCounter = new LinearCounter();
 
     TriangleChannel() {
