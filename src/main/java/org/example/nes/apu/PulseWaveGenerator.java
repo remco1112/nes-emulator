@@ -36,8 +36,9 @@ public class PulseWaveGenerator extends EnvelopeWaveGenerator {
         for (var sequencer : sequencers) sequencer.tick();
     }
 
-    void reset() {
-        resetEnvelope();
+    @Override
+    protected void reset() {
+        super.reset();
         for (var sequencer : sequencers) sequencer.reset();
     }
 

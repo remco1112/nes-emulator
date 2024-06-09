@@ -18,6 +18,22 @@ abstract class Channel {
         return result;
     }
 
+    void writeRegister0(byte value) {
+
+    }
+
+    void writeRegister1(byte value) {
+
+    }
+
+    void writeRegister2(byte value) {
+
+    }
+
+    void writeRegister3(byte value) {
+
+    }
+
     void onCpuTick() {
 
     }

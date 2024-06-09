@@ -14,6 +14,7 @@ public class PulseTimer extends Timer {
         return active && super.tick();
     }
 
+    @Override
     public boolean isActive() {
         return active;
     }

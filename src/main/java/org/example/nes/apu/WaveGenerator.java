@@ -1,8 +1,12 @@
 package org.example.nes.apu;
 
- interface WaveGenerator {
+ abstract class WaveGenerator {
 
-    void tick();
+    protected abstract void tick();
 
-    int getCurrentValue();
-}
+    protected abstract int getCurrentValue();
+
+    protected void reset() {
+
+    }
+ }

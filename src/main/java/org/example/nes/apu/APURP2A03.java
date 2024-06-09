@@ -10,47 +10,47 @@ public class APURP2A03 {
     private final Mixer mixer = new Mixer();
 
     public void writeSQ1Vol(byte value) {
-        pulse1Channel.writeVolumeRegister(value);
+        pulse1Channel.writeRegister0(value);
     }
 
     public void writeSQ1Sweep(byte value) {
-        pulse1Channel.writeSweepRegister(value);
+        pulse1Channel.writeRegister1(value);
     }
 
     public void writeSQ1Low(byte value) {
-        pulse1Channel.writeTimerLowRegister(value);
+        pulse1Channel.writeRegister2(value);
     }
 
     public void writeSQ1High(byte value) {
-        pulse1Channel.writeLengthCounterRegister(value);
+        pulse1Channel.writeRegister3(value);
     }
 
     public void writeSQ2Vol(byte value) {
-        pulse2Channel.writeVolumeRegister(value);
+        pulse2Channel.writeRegister0(value);
     }
 
     public void writeSQ2Sweep(byte value) {
-        pulse2Channel.writeSweepRegister(value);
+        pulse2Channel.writeRegister1(value);
     }
 
     public void writeSQ2Low(byte value) {
-        pulse2Channel.writeTimerLowRegister(value);
+        pulse2Channel.writeRegister2(value);
     }
 
     public void writeSQ2High(byte value) {
-        pulse2Channel.writeLengthCounterRegister(value);
+        pulse2Channel.writeRegister3(value);
     }
 
     public void writeTRILinear(byte value) {
-        triangleChannel.writeLinearCounterRegister(value);
+        triangleChannel.writeRegister0(value);
     }
 
     public void writeTRILow(byte value) {
-        triangleChannel.writeTimerLowRegister(value);
+        triangleChannel.writeRegister2(value);
     }
 
     public void writeTRIHigh(byte value) {
-        triangleChannel.writeLengthCounterRegister(value);
+        triangleChannel.writeRegister3(value);
     }
 
     public void writeNoiseVol(byte value) {

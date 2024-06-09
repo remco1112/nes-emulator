@@ -31,4 +31,8 @@ class Timer {
     int getPeriod() {
         return period;
     }
-}
+
+    boolean isActive() {
+        return true;
+    }
+ }

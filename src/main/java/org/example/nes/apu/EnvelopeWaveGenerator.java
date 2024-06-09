@@ -1,6 +1,6 @@
 package org.example.nes.apu;
 
-abstract class EnvelopeWaveGenerator implements WaveGenerator {
+abstract class EnvelopeWaveGenerator extends WaveGenerator {
     private final EnvelopeGenerator envelopeGenerator = new EnvelopeGenerator();
 
     public void configureVolume(byte value) {
@@ -11,12 +11,13 @@ abstract class EnvelopeWaveGenerator implements WaveGenerator {
         envelopeGenerator.configure(volume, constant, loop);
     }
 
-    protected final void resetEnvelope() {
-        envelopeGenerator.setStart();
-    }
-
     protected final void tickEnvelope() {
         envelopeGenerator.tick();
+    }
+
+    @Override
+    protected void reset() {
+        envelopeGenerator.setStart();
     }
 
     @Override

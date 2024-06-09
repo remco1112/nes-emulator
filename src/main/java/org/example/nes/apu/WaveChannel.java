@@ -1,14 +1,23 @@
 package org.example.nes.apu;
 
-abstract class WaveChannel<T extends WaveGenerator> extends Channel {
+abstract class WaveChannel<W extends WaveGenerator> extends Channel {
     private final LengthCounter lengthCounter = new LengthCounter();
-    protected final T waveGenerator;
+    protected final W waveGenerator;
 
-    WaveChannel(T waveGenerator) {
+    WaveChannel(W waveGenerator) {
         this.waveGenerator = waveGenerator;
     }
 
-    void writeLengthCounterRegister(byte value) {
+    @Override
+    void writeRegister0(byte value) {
+        if (waveGenerator instanceof EnvelopeWaveGenerator) {
+            ((EnvelopeWaveGenerator) waveGenerator).configureVolume(value);
+            setLengthCounterHalted((value & 0x20) != 0);
+        }
+    }
+
+    @Override
+    void writeRegister3(byte value) {
         lengthCounter.set((value & 0xF8) >>> 3);
     }
 
@@ -29,6 +38,14 @@ abstract class WaveChannel<T extends WaveGenerator> extends Channel {
     void onHalfFrameTick() {
         super.onHalfFrameTick();
         lengthCounter.tick();
+    }
+
+    @Override
+    void onQuarterFrameTick() {
+        super.onQuarterFrameTick();
+        if (waveGenerator instanceof EnvelopeWaveGenerator) {
+            ((EnvelopeWaveGenerator) waveGenerator).tickEnvelope();
+        }
     }
 
     @Override
