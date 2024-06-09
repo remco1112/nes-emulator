@@ -1,13 +1,9 @@
 package org.example.nes.apu;
 
-import java.util.Set;
-
 import static org.example.nes.utils.UInt.toUint;
 
-abstract class AbstractPulseChannel {
-    private final EnvelopeGenerator envelopeGenerator = new EnvelopeGenerator();
+abstract class AbstractPulseChannel extends EnvelopeChannel {
     private final PulseWaveGenerator pulseWaveGenerator = new PulseWaveGenerator();
-    private final LengthCounter lengthCounter = new LengthCounter();
     private final PulseTimer pulseTimer = new PulseTimer();
     private final AbstractSweepUnit sweepUnit;
 
@@ -15,15 +11,10 @@ abstract class AbstractPulseChannel {
         this.sweepUnit = sweepUnit;
     }
 
+    @Override
     void writeVolumeRegister(byte value) {
-        final int volume = value & 0xF;
-        final boolean constant  = (value & 0x10) != 0;
-        final boolean loopHalt = (value & 0x20) != 0;
-        final int duty = toUint(value) >>> 6;
-
-        envelopeGenerator.configure(volume, constant, loopHalt);
-        lengthCounter.setHalted(loopHalt);
-        pulseWaveGenerator.setDuty(duty);
+        super.writeVolumeRegister(value);
+        pulseWaveGenerator.setDuty(toUint(value) >>> 6);
     }
 
     void writeSweepRegister(byte value) {
@@ -39,40 +30,35 @@ abstract class AbstractPulseChannel {
         pulseTimer.setPeriod((pulseTimer.getPeriod() & 0x700) | toUint(value));
     }
 
+    @Override
     void writeLengthCounterRegister(byte value) {
+        super.writeLengthCounterRegister(value);
         pulseTimer.setPeriod((pulseTimer.getPeriod() & 0xFF) | ((value & 0x7) << 8));
         pulseWaveGenerator.resetPeriod();
-
-        lengthCounter.set((value & 0xF8) >>> 3);
-        envelopeGenerator.setStart();
     }
 
-    void setEnabled(boolean enabled) {
-        lengthCounter.setEnabled(enabled);
+    @Override
+    boolean isSilenced() {
+        return super.isSilenced()
+                || !pulseWaveGenerator.isWaveHigh()
+                || sweepUnit.isMuted(pulseTimer.getPeriod())
+                || !pulseTimer.isActive();
     }
 
-    int tick(Set<FrameCounter.ClockResult> clockResult) {
-        final int result = emitEnvelopeVolume() ? envelopeGenerator.getVolume() : 0;
-        if (clockResult.contains(FrameCounter.ClockResult.APU) && pulseTimer.tick()) {
+    @Override
+    void onApuTick() {
+        super.onApuTick();
+        if (pulseTimer.tick()) {
             pulseWaveGenerator.tick();
         }
-        if (clockResult.contains(FrameCounter.ClockResult.QUARTER)) {
-            envelopeGenerator.tick();
-        }
-        if (clockResult.contains(FrameCounter.ClockResult.HALF)) {
-            lengthCounter.tick();
-            int newPeriod = sweepUnit.tick(pulseTimer.getPeriod());
-            if (newPeriod != -1) {
-                pulseTimer.setPeriod(newPeriod);
-            }
-        }
-        return result;
     }
 
-    private boolean emitEnvelopeVolume() {
-        return pulseWaveGenerator.isWaveHigh()
-                && !sweepUnit.isMuted(pulseTimer.getPeriod())
-                && !lengthCounter.isZero()
-                && pulseTimer.isActive();
+    @Override
+    void onHalfFrameTick() {
+        super.onHalfFrameTick();
+        int newPeriod = sweepUnit.tick(pulseTimer.getPeriod());
+        if (newPeriod != -1) {
+            pulseTimer.setPeriod(newPeriod);
+        }
     }
 }
