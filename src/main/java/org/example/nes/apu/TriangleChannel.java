@@ -30,7 +30,7 @@ class TriangleChannel extends StandardTimerWaveChannel<WaveGenerator> {
 
     @Override
     protected boolean shouldTickWaveGenerator() {
-        return !isSilenced();
+        return super.shouldTickWaveGenerator() && !isSilenced();
     }
 
     @Override

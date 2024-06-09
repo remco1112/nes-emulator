@@ -10,6 +10,7 @@ abstract class AbstractPulseChannel extends StandardTimerWaveChannel<WaveGenerat
 
     @Override
     void writeRegister1(byte value) {
+        super.writeRegister1(value);
         final boolean enabled = (value & 0x80) != 0;
         final int dividerPeriod = (value & 0x70) >>> 4;
         final boolean negate = (value & 0x4) != 0;

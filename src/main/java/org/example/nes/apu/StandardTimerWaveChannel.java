@@ -10,6 +10,7 @@ class StandardTimerWaveChannel<W extends WaveGenerator> extends WaveChannel<W> {
 
     @Override
     public void writeRegister2(byte value) {
+        super.writeRegister2(value);
         setTimerPeriod((getTimerPeriod() & 0x700) | toUint(value));
     }
 

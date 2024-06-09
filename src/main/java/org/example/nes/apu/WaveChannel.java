@@ -14,11 +14,13 @@ class WaveChannel<W extends WaveGenerator> extends Channel {
 
     @Override
     void onApuTick() {
+        super.onApuTick();
         if (!tickWaveGeneratorOnCpu) tick();
     }
 
     @Override
     void onCpuTick() {
+        super.onCpuTick();
         if(tickWaveGeneratorOnCpu) tick();
     }
 
@@ -45,6 +47,7 @@ class WaveChannel<W extends WaveGenerator> extends Channel {
 
     @Override
     void writeRegister0(byte value) {
+        super.writeRegister0(value);
         if (waveGenerator instanceof EnvelopeWaveGenerator) {
             ((EnvelopeWaveGenerator) waveGenerator).configureVolume(value);
             setLengthCounterHalted((value & 0x20) != 0);
@@ -53,6 +56,7 @@ class WaveChannel<W extends WaveGenerator> extends Channel {
 
     @Override
     void writeRegister3(byte value) {
+        super.writeRegister3(value);
         lengthCounter.set((value & 0xF8) >>> 3);
     }
 
