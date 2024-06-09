@@ -6,6 +6,7 @@ public class APURP2A03 {
     private final FrameCounter frameCounter = new FrameCounter();
     private final Pulse1Channel pulse1Channel = new Pulse1Channel();
     private final Pulse2Channel pulse2Channel = new Pulse2Channel();
+    private final TriangleChannel triangleChannel = new TriangleChannel();
     private final Mixer mixer = new Mixer();
 
     public void writeSQ1Vol(byte value) {
@@ -41,15 +42,15 @@ public class APURP2A03 {
     }
 
     public void writeTRILinear(byte value) {
-
+        triangleChannel.writeLinearCounterRegister(value);
     }
 
     public void writeTRILow(byte value) {
-
+        triangleChannel.writeTimerLowRegister(value);
     }
 
     public void writeTRIHigh(byte value) {
-
+        triangleChannel.writeLengthCounterRegister(value);
     }
 
     public void writeNoiseVol(byte value) {
@@ -83,6 +84,7 @@ public class APURP2A03 {
     public void writeStatus(byte value) {
         pulse1Channel.setEnabled((value & 0x1) != 0);
         pulse2Channel.setEnabled((value & 0x2) != 0);
+        triangleChannel.setEnabled((value & 0x3) != 0);
     }
 
     public byte readStatus() {
@@ -101,7 +103,8 @@ public class APURP2A03 {
 
         final int pulse1 = pulse1Channel.tick(frameCounterClockResults);
         final int pulse2 = pulse2Channel.tick(frameCounterClockResults);
+        final int triangle = triangleChannel.tick(frameCounterClockResults);
 
-        return mixer.mix(pulse1, pulse2, 0, 0, 0);
+        return mixer.mix(pulse1, pulse2, triangle, 0, 0);
     }
 }

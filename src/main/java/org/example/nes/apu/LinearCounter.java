@@ -19,7 +19,11 @@ public class LinearCounter extends Counter {
         } else {
             value = super.tick();
         }
-        reload &= !control;
+        reload &= control;
         return value;
+    }
+
+    void setReload() {
+        reload = true;
     }
 }
