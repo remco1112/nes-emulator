@@ -2,10 +2,13 @@ package org.example.nes.apu;
 
 import static org.example.nes.utils.UInt.toUint;
 
-class TriangleChannel extends WaveChannel {
+class TriangleChannel extends WaveChannel<WaveGenerator> {
     private final LinearCounter linearCounter = new LinearCounter();
     private final Timer timer = new Timer();
-    private final TriangleWaveGenerator triangleWaveGenerator = new TriangleWaveGenerator();
+
+    TriangleChannel() {
+        super(new TriangleWaveGenerator());
+    }
 
     void writeLinearCounterRegister(byte value) {
         final int reloadValue = value & 0x7F;
@@ -29,7 +32,7 @@ class TriangleChannel extends WaveChannel {
     void onCpuTick() {
         super.onCpuTick();
         if (timer.tick() && !isSilenced()) {
-            triangleWaveGenerator.tick();
+            waveGenerator.tick();
         }
     }
 
@@ -42,10 +45,5 @@ class TriangleChannel extends WaveChannel {
     @Override
     boolean isSilenced() {
         return super.isSilenced() || linearCounter.isZero();
-    }
-
-    @Override
-    int getVolume() {
-        return triangleWaveGenerator.getValue();
     }
 }

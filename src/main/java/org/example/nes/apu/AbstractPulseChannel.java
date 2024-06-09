@@ -2,19 +2,18 @@ package org.example.nes.apu;
 
 import static org.example.nes.utils.UInt.toUint;
 
-abstract class AbstractPulseChannel extends EnvelopeChannel {
-    private final PulseWaveGenerator pulseWaveGenerator = new PulseWaveGenerator();
+abstract class AbstractPulseChannel extends WaveChannel<PulseWaveGenerator> {
     private final PulseTimer pulseTimer = new PulseTimer();
     private final AbstractSweepUnit sweepUnit;
 
     AbstractPulseChannel(AbstractSweepUnit sweepUnit) {
+        super(new PulseWaveGenerator());
         this.sweepUnit = sweepUnit;
     }
 
-    @Override
     void writeVolumeRegister(byte value) {
-        super.writeVolumeRegister(value);
-        pulseWaveGenerator.setDuty(toUint(value) >>> 6);
+        waveGenerator.configureVolume(value);
+        setLengthCounterHalted((value & 0x20) != 0);
     }
 
     void writeSweepRegister(byte value) {
@@ -34,13 +33,12 @@ abstract class AbstractPulseChannel extends EnvelopeChannel {
     void writeLengthCounterRegister(byte value) {
         super.writeLengthCounterRegister(value);
         pulseTimer.setPeriod((pulseTimer.getPeriod() & 0xFF) | ((value & 0x7) << 8));
-        pulseWaveGenerator.resetPeriod();
+        waveGenerator.reset();
     }
 
     @Override
     boolean isSilenced() {
         return super.isSilenced()
-                || !pulseWaveGenerator.isWaveHigh()
                 || sweepUnit.isMuted(pulseTimer.getPeriod())
                 || !pulseTimer.isActive();
     }
@@ -49,7 +47,7 @@ abstract class AbstractPulseChannel extends EnvelopeChannel {
     void onApuTick() {
         super.onApuTick();
         if (pulseTimer.tick()) {
-            pulseWaveGenerator.tick();
+            waveGenerator.tick();
         }
     }
 
@@ -60,5 +58,11 @@ abstract class AbstractPulseChannel extends EnvelopeChannel {
         if (newPeriod != -1) {
             pulseTimer.setPeriod(newPeriod);
         }
+    }
+
+    @Override
+    void onQuarterFrameTick() {
+        super.onQuarterFrameTick();
+        waveGenerator.tickEnvelope();
     }
 }
