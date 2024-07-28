@@ -10,7 +10,7 @@ import org.example.nes.input.NullInputDevice;
 import org.example.nes.input.StandardControllerInputDevice;
 import org.example.nes.mapper.INESLoader;
 import org.example.nes.mapper.Mapper;
-import org.example.nes.sound.JavaSoundSampleConsumer;
+import org.example.nes.sound.NativeDownsamplingJavaSoundSampleConsumer;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -37,7 +37,7 @@ public class Emulator {
 
         final InputController inputController = new InputController(new StandardControllerInputDevice(awtStandardControllerAdapter), new NullInputDevice());
 
-        final MasterClock masterClock = new MasterClock(mapper, nesImageProducer, inputController, new JavaSoundSampleConsumer());
+        final MasterClock masterClock = new MasterClock(mapper, nesImageProducer, inputController, new NativeDownsamplingJavaSoundSampleConsumer());
         masterClock.start();
     }
 }
